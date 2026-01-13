@@ -1,7 +1,9 @@
+from secrets import choice
 import sys
 from src.library import Library
-from src.ui import librarian, reader
-from src.ui.common import print_header, clear_screen
+from src.ui.librarian import main_menu as librarian_ui
+from src.ui.reader import main_menu as reader_ui
+from src.ui.common import pause, print_header, clear_screen
 
 # Sukuriame bibliotekos egzempliorių (vieną kartą visai programai)
 library = Library()
@@ -32,8 +34,8 @@ def main():
             user = library.user_manager.authenticate_librarian(username, password)
             
             if user:
-                # Perduodame valdymą į librarian modulį
-                librarian.run_menu(library, user)
+                # Kviečiame per naują importo vardą
+                librarian_ui.run_menu(library, user) 
             else:
                 print("Klaida: Neteisingi duomenys.")
 
@@ -43,9 +45,10 @@ def main():
             
             if user and user.role == 'reader':
                 # Perduodame valdymą į reader modulį
-                reader.run_menu(library, user)
+                reader_ui.run_menu(library, user)
             else:
                 print("Klaida: Kortelė nerasta arba neteisingas ID.")
+                pause()
 
         elif choice == '3':
             clear_screen()
