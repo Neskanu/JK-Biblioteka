@@ -1,0 +1,14 @@
+[
+    {
+        "id": "5acfafd9-7a3b-484a-a33a-a7c457292a43",
+        "username": "admin",
+        "role": "librarian",
+        "password": "admin"
+    },
+    {
+        "id": "1c55fad8-fb04-46fa-b092-fce81b063608",
+        "username": "Petras",
+        "role": "reader",
+        "borrowed_books_ids": []
+    }
+]

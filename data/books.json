@@ -1,0 +1,502 @@
+[
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "title": "1984",
+        "author": "George Orwell",
+        "year": 1949,
+        "genre": "Distopija",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440002",
+        "title": "Altorių šešėly",
+        "author": "Vincas Mykolaitis-Putinas",
+        "year": 1933,
+        "genre": "Romanas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "overdue-book-001",
+        "title": "Didysis Getsbis",
+        "author": "F. Scott Fitzgerald",
+        "year": 1925,
+        "genre": "Klasika",
+        "is_borrowed": true,
+        "due_date": "2023-01-01",
+        "borrower_id": "test-reader-id"
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440004",
+        "title": "Haris Poteris ir Išminties akmuo",
+        "author": "J.K. Rowling",
+        "year": 1997,
+        "genre": "Fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440005",
+        "title": "Balta drobulė",
+        "author": "Antanas Škėma",
+        "year": 1958,
+        "genre": "Modernizmas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440006",
+        "title": "Žiedų valdovas: Žiedo brolija",
+        "author": "J.R.R. Tolkien",
+        "year": 1954,
+        "genre": "Fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440007",
+        "title": "Daiktai, kurie krenta į viršų",
+        "author": "Algimantas Čekuolis",
+        "year": 2006,
+        "genre": "Publicistika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440008",
+        "title": "Sapiens: Glausta žmonijos istorija",
+        "author": "Yuval Noah Harari",
+        "year": 2011,
+        "genre": "Istorija",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440009",
+        "title": "Mažasis princas",
+        "author": "Antoine de Saint-Exupéry",
+        "year": 1943,
+        "genre": "Pasaka",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440010",
+        "title": "Alchemikas",
+        "author": "Paulo Coelho",
+        "year": 1988,
+        "genre": "Romanas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440011",
+        "title": "Da Vinčio kodas",
+        "author": "Dan Brown",
+        "year": 2003,
+        "genre": "Trileris",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440012",
+        "title": "Kopa",
+        "author": "Frank Herbert",
+        "year": 1965,
+        "genre": "Mokslinė fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440013",
+        "title": "Rugiuose prie bedugnės",
+        "author": "J.D. Salinger",
+        "year": 1951,
+        "genre": "Klasika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440014",
+        "title": "Dievų miškas",
+        "author": "Balys Sruoga",
+        "year": 1957,
+        "genre": "Memuarai",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440015",
+        "title": "Hobitas",
+        "author": "J.R.R. Tolkien",
+        "year": 1937,
+        "genre": "Fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440016",
+        "title": "Puikybė ir prietarai",
+        "author": "Jane Austen",
+        "year": 1813,
+        "genre": "Klasika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440017",
+        "title": "Nusikaltimas ir bausmė",
+        "author": "Fiodoras Dostojevskis",
+        "year": 1866,
+        "genre": "Klasika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440018",
+        "title": "Gyvulių ūkis",
+        "author": "George Orwell",
+        "year": 1945,
+        "genre": "Satyra",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440019",
+        "title": "Šimtas metų vienatvės",
+        "author": "Gabriel García Márquez",
+        "year": 1967,
+        "genre": "Magiškasis realizmas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440020",
+        "title": "Mergina su drakono tatuiruote",
+        "author": "Stieg Larsson",
+        "year": 2005,
+        "genre": "Detektyvas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440021",
+        "title": "Sostų žaidimas",
+        "author": "George R.R. Martin",
+        "year": 1996,
+        "genre": "Fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440022",
+        "title": "Silva Rerum",
+        "author": "Kristina Sabaliauskaitė",
+        "year": 2008,
+        "genre": "Istorinis romanas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440023",
+        "title": "Bado žaidynės",
+        "author": "Suzanne Collins",
+        "year": 2008,
+        "genre": "Distopija",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440024",
+        "title": "Stepių vilkas",
+        "author": "Hermann Hesse",
+        "year": 1927,
+        "genre": "Filosofinis",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440025",
+        "title": "Vėjas gluosniuose",
+        "author": "Kenneth Grahame",
+        "year": 1908,
+        "genre": "Vaikams",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440026",
+        "title": "Krikštatėvis",
+        "author": "Mario Puzo",
+        "year": 1969,
+        "genre": "Kriminalinis",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440027",
+        "title": "Ana Karenina",
+        "author": "Levas Tolstojus",
+        "year": 1877,
+        "genre": "Klasika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440028",
+        "title": "Karas ir taika",
+        "author": "Levas Tolstojus",
+        "year": 1869,
+        "genre": "Istorinis romanas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440029",
+        "title": "Ulisas",
+        "author": "James Joyce",
+        "year": 1922,
+        "genre": "Modernizmas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440030",
+        "title": "Tarp pilkų debesų",
+        "author": "Ruta Sepetys",
+        "year": 2011,
+        "genre": "Istorinis",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440031",
+        "title": "Marsietis",
+        "author": "Andy Weir",
+        "year": 2011,
+        "genre": "Mokslinė fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440032",
+        "title": "Šerloko Holmso nuotykiai",
+        "author": "Arthur Conan Doyle",
+        "year": 1892,
+        "genre": "Detektyvas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440033",
+        "title": "Frankenšteinas",
+        "author": "Mary Shelley",
+        "year": 1818,
+        "genre": "Siaubo",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440034",
+        "title": "Drakula",
+        "author": "Bram Stoker",
+        "year": 1897,
+        "genre": "Siaubo",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440035",
+        "title": "Vilniaus pokeris",
+        "author": "Ričardas Gavelis",
+        "year": 1989,
+        "genre": "Postmodernizmas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440036",
+        "title": "Pasaulių karas",
+        "author": "H.G. Wells",
+        "year": 1898,
+        "genre": "Mokslinė fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440037",
+        "title": "Trys muškietininkai",
+        "author": "Alexandre Dumas",
+        "year": 1844,
+        "genre": "Nuotykių",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440038",
+        "title": "Sena skrybėlė",
+        "author": "Juozas Aputis",
+        "year": 1980,
+        "genre": "Novelės",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440039",
+        "title": "Fahrenheit 451",
+        "author": "Ray Bradbury",
+        "year": 1953,
+        "genre": "Distopija",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440040",
+        "title": "Nematomas žmogus",
+        "author": "H.G. Wells",
+        "year": 1897,
+        "genre": "Mokslinė fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440041",
+        "title": "Vienuolika minučių",
+        "author": "Paulo Coelho",
+        "year": 2003,
+        "genre": "Romanas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440042",
+        "title": "Miškais ateina ruduo",
+        "author": "Marius Katiliškis",
+        "year": 1957,
+        "genre": "Romanas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440043",
+        "title": "Ponas Tešlius",
+        "author": "Stanislaw Lem",
+        "year": 1966,
+        "genre": "Mokslinė fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440044",
+        "title": "Lobių sala",
+        "author": "Robert Louis Stevenson",
+        "year": 1883,
+        "genre": "Nuotykių",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440045",
+        "title": "Vargdieniai",
+        "author": "Victor Hugo",
+        "year": 1862,
+        "genre": "Istorinis",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440046",
+        "title": "Kliudžiau",
+        "author": "Jonas Biliūnas",
+        "year": 1906,
+        "genre": "Novelė",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440047",
+        "title": "Odisėja",
+        "author": "Homeras",
+        "year": -800,
+        "genre": "Epas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440048",
+        "title": "Hamlet",
+        "author": "William Shakespeare",
+        "year": 1603,
+        "genre": "Tragedija",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440049",
+        "title": "Dieviškoji komedija",
+        "author": "Dante Alighieri",
+        "year": 1320,
+        "genre": "Poema",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
+        "id": "550e8400-e29b-41d4-a716-446655440050",
+        "title": "Don Kichotas",
+        "author": "Miguel de Cervantes",
+        "year": 1605,
+        "genre": "Romanas",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    }
+]
