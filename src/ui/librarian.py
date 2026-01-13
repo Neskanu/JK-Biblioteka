@@ -1,10 +1,11 @@
-from src.ui.common import print_header, get_int_input, pause
+from src.ui.common import print_header, get_int_input, pause, clear_screen
 
 def run_menu(library, user):
     """
     Vykdo bibliotekininko meniu ciklą.
     """
     while True:
+        clear_screen()
         print_header(f"Bibliotekininkas: {user.username}")
         print("1. Pridėti naują knygą")
         print("2. Ištrinti senas knygas")

@@ -1,7 +1,7 @@
 import sys
 from src.library import Library
 from src.ui import librarian, reader
-from src.ui.common import print_header
+from src.ui.common import print_header, clear_screen
 
 # Sukuriame bibliotekos egzempliorių (vieną kartą visai programai)
 library = Library()
@@ -18,6 +18,7 @@ def main():
     bootstrap_system()
     
     while True:
+        clear_screen()
         print_header("BIBLIOTEKOS SISTEMA")
         print("1. Bibliotekininko prisijungimas")
         print("2. Skaitytojo prisijungimas")
@@ -47,6 +48,7 @@ def main():
                 print("Klaida: Kortelė nerasta arba neteisingas ID.")
 
         elif choice == '3':
+            clear_screen()
             print("Viso gero!")
             sys.exit()
         

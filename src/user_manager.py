@@ -1,5 +1,7 @@
+import os
 from src.models import Librarian, Reader
 from src.data_manager import load_data, save_data
+from src.utils import generate_card_id
 
 DATA_FILE = 'data/users.json'
 
@@ -20,12 +22,19 @@ class UserManager:
         save_data(DATA_FILE, data)
 
     def register_reader(self, username):
-        """Registruoja naują skaitytoją."""
-        # Patikriname, ar vardas neužimtas (nebūtina, bet gera praktika)
-        if self.get_user_by_username(username):
-            return None # Vartotojas jau yra
-            
-        new_reader = Reader(username)
+        """Registruoja naują skaitytoją su trumpu ID."""
+        
+        # Generuojame unikalų ID
+        # Ciklas while užtikrina, kad jei netyčia sugeneruotume egzistuojantį (labai maža tikimybė),
+        # bandytume dar kartą.
+        while True:
+            new_card_id = generate_card_id()
+            if not self.get_user_by_id(new_card_id): # Jei tokio ID dar nėra
+                break
+        
+        # Kuriame objektą su MŪSŲ sugeneruotu ID
+        new_reader = Reader(username, user_id=new_card_id)
+        
         self.users.append(new_reader)
         self.save()
         return new_reader

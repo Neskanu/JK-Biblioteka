@@ -1,3 +1,14 @@
+import os
+
+def clear_screen():
+    """Išvalo terminalo ekraną (veikia ant Windows ir Mac/Linux)."""
+    # 'nt' reiškia Windows
+    if os.name == 'nt':
+        os.system('cls')
+    # Visi kiti (Mac, Linux)
+    else:
+        os.system('clear')
+
 def print_header(title):
     """Atspausdina gražią antraštę."""
     print("\n" + "="*50)
