@@ -28,17 +28,15 @@ class Book:
         self.year = year
         self.genre = genre
         
-        self.is_borrowed = is_borrowed
-        self.due_date = due_date       
-        self.borrower_id = borrower_id 
+        self.total_copies = total_copies
+        self.available_copies = available_copies
 
     def __str__(self):
         """
         Specialus Python metodas. Kai kviečiame print(knyga), suveikia šis kodas.
         Grąžina gražiai suformatuotą tekstą atvaizdavimui konsolėje.
         """
-        status = f"Paimta (Iki {self.due_date})" if self.is_borrowed else "Laisva"
-        return f"[{self.year}] '{self.title}' - {self.author} ({self.genre}) | {status}"
+        return f"{self.title} - {self.author} | Laisva: {self.available_copies}/{self.total_copies}"
 
     def to_dict(self):
         """
@@ -56,9 +54,8 @@ class Book:
             "author": self.author,
             "year": self.year,
             "genre": self.genre,
-            "is_borrowed": self.is_borrowed,
-            "due_date": self.due_date,
-            "borrower_id": self.borrower_id
+            "total_copies": self.total_copies,
+            "available_copies": self.available_copies
         }
 
     @classmethod
@@ -81,9 +78,8 @@ class Book:
             author=data["author"],
             year=data["year"],
             genre=data["genre"],
-            is_borrowed=data["is_borrowed"],
-            due_date=data["due_date"],
-            borrower_id=data["borrower_id"]
+            total_copies=data.get("total_copies", 1),
+            available_copies=data.get("available_copies", 1)
         )
 
 # --- Vartotojų Modeliai ---
@@ -141,19 +137,19 @@ class Reader(User):
     Skaitytojas.
     Paveldi iš User, bet turi pasiimtų knygų sąrašą.
     """
-    def __init__(self, username, user_id=None, borrowed_books_ids=None):
+    def __init__(self, username, user_id=None, active_loans=None):
         super().__init__(username, role="reader", user_id=user_id)
         
-        # Jei sąrašas nepaduotas, sukuriame tuščią.
-        # Saugome tik ID, kad JSON failas būtų paprastesnis ir neužciklintume duomenų.
-        if borrowed_books_ids is None:
-            borrowed_books_ids = []
-        self.borrowed_books_ids = borrowed_books_ids
+        # Saugome ne ID sąrašą, o žodynų sąrašą.
+        # Struktūra: [{'book_id': '...', 'due_date': '...', 'title': '...'}]
+        if active_loans is None:
+            active_loans = []
+        self.borrowed_books_ids = active_loans
 
     def to_dict(self):
         data = super().to_dict()
         # Pridedame specifinį lauką - knygų ID sąrašą
-        data["borrowed_books_ids"] = self.borrowed_books_ids
+        data["active_loans"] = self.active_loans
         return data
 
     @classmethod
@@ -162,5 +158,5 @@ class Reader(User):
         return cls(
             user_id=data["id"],
             username=data["username"],
-            borrowed_books_ids=data.get("borrowed_books_ids", [])
+            active_loans=data.get("active_loans", [])
         )

@@ -2,7 +2,6 @@ import os
 import json # Reikės backup krovimui
 from datetime import datetime, timedelta # Reikės trinant prarastas knygas
 from src.models import Book
-from src.data_manager import load_data, save_data
 from src.data_manager import load_data, save_data, get_data_file_path
 
 # ... (kelio nustatymas) ...
@@ -23,10 +22,37 @@ class BookManager:
         save_data(DATA_FILE, data)
 
     def add_book(self, title, author, year, genre):
-        new_book = Book(title, author, year, genre)
+        # 1. Tikriname, ar tokia knyga jau egzistuoja (pagal pavadinimą ir autorių)
+        for book in self.books:
+            if book.title.lower() == title.lower() and book.author.lower() == author.lower():
+                # Jei radome - tik padidiname kiekį
+                book.total_copies += 1
+                book.available_copies += 1
+                self.save()
+                return book # Grąžiname esamą atnaujintą objektą
+
+        # 2. Jei neradome - kuriame naują įrašą
+        new_book = Book(title, author, year, genre, total_copies=1, available_copies=1)
         self.books.append(new_book)
-        self.save() # Iškart saugome
+        self.save()
         return new_book
+    
+    def get_book_by_id(self, book_id):
+        for book in self.books:
+            if book.id == book_id:
+                return book
+        return None
+    
+    def get_all_books(self):
+        return self.books
+
+    def search_books(self, query):
+        query = query.lower()
+        results = []
+        for book in self.books:
+            if query in book.title.lower() or query in book.author.lower():
+                results.append(book)
+        return results
 
     def get_candidates_by_year(self, year_threshold):
         """Grąžina sąrašą knygų, kurios senesnės nei X ir nėra paskolintos."""

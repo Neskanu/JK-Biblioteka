@@ -15,6 +15,7 @@ def run(library, user):
         
         print("1. Peržiūrėti mano knygas")
         print("2. Grąžinti knygą")
+        print("3. Grąžinti visas knygas")
         print("0. Grįžti atgal")
 
         choice = input("\nPasirinkimas: ")
@@ -24,6 +25,18 @@ def run(library, user):
             pause()
         elif choice == '2':
             _return_process(library, user)
+        elif choice == '3':
+            # --- Grąžinti knygas po vieną nepatogu, taigi leidžiam grąžinti visas ---
+            if not user.borrowed_books_ids:
+                print("\nNeturite ką grąžinti.")
+            else:
+                confirm = input("Ar tikrai norite grąžinti VISAS knygas? (t/n): ")
+                if confirm.lower() == 't':
+                    success, msg = library.return_all_books(user.id)
+                    print(f"\n{msg}")
+                else:
+                    print("Atšaukta.")
+            pause()
         elif choice == '0':
             break
         else:
@@ -40,14 +53,12 @@ def _get_my_book_objects(library, user):
     return my_books
 
 def _show_my_books(library, user):
-    print("\n--- Pasiimtos Knygos ---")
-    books = _get_my_book_objects(library, user)
-    
-    if not books:
-        print("Sąrašas tuščias.")
+    # Dabar nereikia konvertuoti ID -> Book Obj, nes active_loans jau turi pavadinimą
+    if not user.active_loans:
+        print("Neturite knygų.")
     else:
-        for i, book in enumerate(books, 1):
-            print(f"{i}. {book.title} (Grąžinti iki: {book.due_date})")
+        for i, loan in enumerate(user.active_loans, 1):
+            print(f"{i}. {loan['title']} (Iki: {loan['due_date']})")
 
 def _return_process(library, user):
     books = _get_my_book_objects(library, user)

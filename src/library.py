@@ -4,6 +4,7 @@ from src.user_manager import UserManager
 
 # Nustatome skolinimo terminą (pvz., 14 dienų)
 LOAN_PERIOD_DAYS = 14
+MAX_BOOKS_PER_USER = 5
 
 class Library:
     """
@@ -34,22 +35,21 @@ class Library:
         if not user or user.role != 'reader':
             return []
 
-        overdue_books = []
-        today = datetime.now().date() # Gauname šiandienos datą (be laiko)
+        overdue_loans = []
+        today = datetime.now().date()
 
-        # Einame per visas vartotojo turimas knygas (jų ID)
-        for book_id in user.borrowed_books_ids:
-            book = self.book_manager.get_book_by_id(book_id)
-            
-            # Jei knyga rasta, ji paskolinta ir turi grąžinimo datą
-            if book and book.due_date:
-                # Konvertuojame string datą 'YYYY-MM-DD' į tikrą datetime objektą palyginimui
-                due_date_obj = datetime.strptime(book.due_date, "%Y-%m-%d").date()
-                
+        # Iteruojame per vartotojo paskolų sąrašą
+        for loan in user.active_loans:
+            due_date_str = loan['due_date']
+            try:
+                due_date_obj = datetime.strptime(due_date_str, "%Y-%m-%d").date()
                 if due_date_obj < today:
-                    overdue_books.append(book)
+                    # Pridedame informaciją apie vėlavimą
+                    overdue_loans.append(loan)
+            except ValueError:
+                pass
         
-        return overdue_books
+        return overdue_loans
 
     def borrow_book(self, user_id, book_id):
         """
@@ -62,73 +62,122 @@ class Library:
         user = self.user_manager.get_user_by_id(user_id)
         book = self.book_manager.get_book_by_id(book_id)
 
-        # 2. Baziniai patikrinimai
-        if not user:
-            return False, "Vartotojas nerastas."
-        if not book:
-            return False, "Knyga nerasta."
-        if book.is_borrowed:
-            return False, "Knyga jau paimta kito skaitytojo."
+        if not user: return False, "Vartotojas nerastas."
+        if not book: return False, "Knyga nerasta."
 
-        # 3. Vėlavimo patikrinimas (Būtina sąlyga!)
-        overdue_list = self.get_user_overdue_books(user_id)
-        if len(overdue_list) > 0:
-            return False, f"Negalima skolinti! Turite {len(overdue_list)} vėluojančią(-ias) knygą(-as)."
+        # 1. Ar yra laisvų kopijų?
+        if book.available_copies <= 0:
+            return False, "Šiuo metu visos šios knygos kopijos yra išduotos."
 
-        # 4. Atliekame skolinimą
-        # Apskaičiuojame grąžinimo datą
+        # 2. Vėlavimai
+        overdue = self.get_user_overdue_books(user_id)
+        if overdue:
+            return False, "Turite vėluojančių knygų!"
+
+        # 3. Limitas
+        if len(user.active_loans) >= MAX_BOOKS_PER_USER:
+            return False, "Pasiektas 5 knygų limitas."
+
+        # 4. Ar jau turi šią knygą?
+        for loan in user.active_loans:
+            if loan['book_id'] == book.id:
+                return False, "Jau turite šios knygos kopiją."
+
+        # --- VEIKSMAS ---
+        
+        # A. Atnaujiname knygos likutį
+        book.available_copies -= 1
+        
+        # B. Sukuriame paskolos įrašą vartotojui
         return_date = datetime.now() + timedelta(days=LOAN_PERIOD_DAYS)
         formatted_date = return_date.strftime("%Y-%m-%d")
-
-        # Atnaujiname knygą
-        book.is_borrowed = True
-        book.borrower_id = user.id
-        book.due_date = formatted_date
         
-        # Atnaujiname vartotoją
-        user.borrowed_books_ids.append(book.id)
+        loan_record = {
+            "book_id": book.id,
+            "title": book.title, # Išsaugome pavadinimą patogumui
+            "due_date": formatted_date
+        }
+        
+        user.active_loans.append(loan_record)
 
-        # 5. Išsaugome abu failus
         self.book_manager.save()
         self.user_manager.save()
 
-        return True, f"Knyga '{book.title}' sėkmingai išduota iki {formatted_date}."
+        return True, f"Knyga '{book.title}' išduota. Liko kopijų: {book.available_copies}"
 
     def return_book(self, user_id, book_id):
         """Grąžina knygą į biblioteką."""
         user = self.user_manager.get_user_by_id(user_id)
         book = self.book_manager.get_book_by_id(book_id)
 
-        if not user or not book:
-            return False, "Neteisingi duomenys."
+        if not user: return False, "Vartotojas nerastas."
 
-        if book_id not in user.borrowed_books_ids:
-            return False, "Šis vartotojas neturi šios knygos."
+        # Ieškome paskolos įrašo
+        loan_to_remove = None
+        for loan in user.active_loans:
+            if loan['book_id'] == book_id:
+                loan_to_remove = loan
+                break
+        
+        if not loan_to_remove:
+            return False, "Vartotojas neturi pasiėmęs šios knygos."
 
-        # Išvalome knygos duomenis
-        book.is_borrowed = False
-        book.borrower_id = None
-        book.due_date = None
+        # --- VEIKSMAS ---
+        
+        # A. Pašaliname iš vartotojo
+        user.active_loans.remove(loan_to_remove)
+        
+        # B. Padidiname knygos likutį (jei knyga dar egzistuoja sistemoje)
+        if book:
+            book.available_copies += 1
+            # Saugiklis, kad neviršytume total
+            if book.available_copies > book.total_copies:
+                book.available_copies = book.total_copies
 
-        # Pašaliname iš vartotojo sąrašo
-        user.borrowed_books_ids.remove(book_id)
-
-        # Saugome
         self.book_manager.save()
         self.user_manager.save()
 
         return True, "Knyga sėkmingai grąžinta."
+    
+    # --- NAUJAS METODAS: GRĄŽINTI VISKĄ ---
+    def return_all_books(self, user_id):
+        """Vartotojas grąžina visas turimas knygas."""
+        user = self.user_manager.get_user_by_id(user_id)
+        if not user or not user.active_loans:
+            return False, "Nėra ką grąžinti."
+            
+        # Kopijuojame sąrašą, kad galėtume iteruoti
+        loans_copy = list(user.active_loans)
+        count = 0
+        
+        for loan in loans_copy:
+            self.return_book(user_id, loan['book_id'])
+            count += 1
+            
+        return True, f"Grąžinta knygų: {count}"
 
     def get_all_overdue_books(self):
-        """Grąžina sąrašą visų bibliotekoje vėluojančių knygų (Adminui)."""
-        all_books = self.book_manager.get_all_books()
-        overdue = []
-        today = datetime.now().strftime("%Y-%m-%d") # Palyginimui kaip string
-
-        for book in all_books:
-            if book.is_borrowed and book.due_date and book.due_date < today:
-                overdue.append(book)
-        return overdue
+        """Administratoriui: grąžina visus vėluojančius įrašus."""
+        # Ši logika sudėtingesnė, nes knyga pati "nežino", kad vėluoja.
+        # Reikia eiti per VARTOTOJUS.
+        overdue_report = []
+        today = datetime.now().date()
+        
+        for user in self.user_manager.users:
+            if user.role == 'reader':
+                for loan in user.active_loans:
+                    try:
+                        due = datetime.strptime(loan['due_date'], "%Y-%m-%d").date()
+                        if due < today:
+                            # Konstruojame ataskaitos objektą (ne Book objektą, o info)
+                            overdue_report.append({
+                                "title": loan['title'],
+                                "user": user.username,
+                                "due_date": loan['due_date']
+                            })
+                    except ValueError:
+                        pass
+        return overdue_report
     
     def safe_delete_user(self, user):
         """

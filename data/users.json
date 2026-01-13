@@ -1,20 +1,20 @@
 [
     {
-        "id": "5acfafd9-7a3b-484a-a33a-a7c457292a43",
-        "username": "admin",
-        "role": "librarian",
-        "password": "admin"
-    },
-    {
         "id": "DH8525",
         "username": "Petras Petrauskas",
         "role": "reader",
         "borrowed_books_ids": []
     },
     {
-        "id": "LM9314",
+        "id": "AB1234",
         "username": "Simas",
         "role": "reader",
         "borrowed_books_ids": []
+    },
+    {
+        "id": "4a8c5b2b-e4e9-44e1-8691-3b3e4c279f6a",
+        "username": "admin",
+        "role": "librarian",
+        "password": "admin"
     }
 ]

@@ -20,14 +20,14 @@
         "borrower_id": null
     },
     {
-        "id": "overdue-book-001",
+        "id": "550e8400-e29b-41d4-a716-446655440003",
         "title": "Didysis Getsbis",
         "author": "F. Scott Fitzgerald",
         "year": 1925,
         "genre": "Klasika",
-        "is_borrowed": true,
-        "due_date": "2023-01-01",
-        "borrower_id": "test-reader-id"
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440004",
