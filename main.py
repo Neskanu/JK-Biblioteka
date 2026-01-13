@@ -4,6 +4,7 @@ from src.library import Library
 from src.ui.librarian import main_menu as librarian_ui
 from src.ui.reader import main_menu as reader_ui
 from src.ui.common import pause, print_header, clear_screen
+from src.ui.ascii_styler import draw_ascii_menu
 
 # Sukuriame bibliotekos egzempliorių (vieną kartą visai programai)
 library = Library()
@@ -21,14 +22,19 @@ def main():
     
     while True:
         clear_screen()
-        print_header("BIBLIOTEKOS SISTEMA")
-        print("1. Bibliotekininko prisijungimas")
-        print("2. Skaitytojo prisijungimas")
-        print("3. Išeiti")
-        
+        # Meniu piešiame naudodami draw_ascii_menu
+        menu_options = [
+            ("1", "Bibliotekininko prisijungimas"),
+            ("2", "Skaitytojo prisijungimas"),
+            ("3", "Išeiti")
+        ]
+        draw_ascii_menu("BIBLIOTEKOS SISTEMA", menu_options)
+                
         choice = input("\nPasirinkimas: ")
 
         if choice == '1':
+            clear_screen()
+            print_header("BIBLIOTEKININKO PRISIJUNGIMAS")
             username = input("Vartotojas: ")
             password = input("Slaptažodis: ")
             user = library.user_manager.authenticate_librarian(username, password)
@@ -40,6 +46,8 @@ def main():
                 print("Klaida: Neteisingi duomenys.")
 
         elif choice == '2':
+            clear_screen()
+            print_header("SKAITYTOJO PRISIJUNGIMAS")
             card_id = input("Įveskite Kortelės ID: ")
             user = library.user_manager.get_user_by_id(card_id)
             

@@ -1,17 +1,26 @@
+# FAILAS: src/ui/librarian/books_menu.py
+# PASKIRTIS: Valdo vartotojo sąsają knygų administravimui.
+# RYŠIAI:
+#   - Importuoja draw_ascii_table iš src/ui/ascii_styler.py
+#   - Kviečia metodus iš library.book_manager
+
 from src.ui.common import print_header, get_int_input, pause, clear_screen, select_object_from_list # Meniu bendros funkcijos
 from src.ui.librarian import bulk_delete_menu # Masinio trynimo meniu
-
+from src.ui.ascii_styler import draw_ascii_table, draw_ascii_menu
 
 def run(library):
     """Knygų valdymo sub-meniu."""
     while True:
         clear_screen()
-        print_header("KNYGŲ VALDYMAS")
-        print("1. Pridėti naują knygą")
-        print("2. Masinis šalinimas ir atstatymas")
-        print("3. Ištrinti konkrečią knygą")
-        print("4. Rodyti visas knygas")
-        print("0. Grįžti atgal")
+    # Meniu piešiame naudodami draw_ascii_menu
+        menu_options = [
+            ("1", "Pridėti naują knygą"),
+            ("2", "Masinis šalinimas ir atstatymas"),
+            ("3", "Ištrinti konkrečią knygą"),
+            ("4", "Rodyti visas knygas (Lentelė)"),
+            ("0", "Grįžti atgal")
+        ]
+        draw_ascii_menu("KNYGŲ VALDYMAS", menu_options)
         
         choice = input("\nPasirinkimas: ")
 
@@ -60,13 +69,20 @@ def run(library):
             if not books:
                 print("Biblioteka tuščia.")
             else:
-                print(f"{'ID ':<8} | {'Laisvų/Iš viso kopijų':<20} | {'Autorius':<30} | {'Pavadinimas'}")
-                print("-" * 80)
+                # --- ASCII LENTELĖS IMPLEMENTACIJA ---
+                # 1. Paruošiame Antraštes
+                headers = ["ID (Trumpas)", "Autorius", "Pavadinimas", "Metai", "Likutis"]
+                
+                # 2. Paruošiame Eilutes
+                rows = []
                 for b in books:
-                    # Atspausdiname eilės numerį sąraše
-                    short_id = b.id[-4:]  # Paskutinės 4 raidės
+                    short_id = b.id[-4:]  # Paskutiniai 4 simboliai
                     qty_info = f"{b.available_copies}/{b.total_copies}"
-                    print(f"{short_id:<15} | {qty_info:<8} | {b.author:<20} | {b.title}")
+                    rows.append([short_id, b.author, b.title, b.year, qty_info])
+                
+                # 3. Atvaizduojame
+                draw_ascii_table(headers, rows)
+                # -------------------------------------
             pause()
 
         elif choice == '0':

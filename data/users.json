@@ -9,6 +9,12 @@
         "id": "AW4240",
         "username": "Vardenis Pavardenis",
         "role": "reader",
-        "active_loans": []
+        "active_loans": [
+            {
+                "book_id": "550e8400-e29b-41d4-a716-446655440001",
+                "title": "1984",
+                "due_date": "2026-01-27"
+            }
+        ]
     }
 ]
