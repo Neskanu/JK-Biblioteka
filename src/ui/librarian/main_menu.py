@@ -1,6 +1,7 @@
-from src.ui.common import print_header, pause, clear_screen
+from src.ui.common import pause, clear_screen
 # Importuojame sub-meniu modulius
 from src.ui.librarian import books_menu, users_menu, stats_menu
+from src.ui.ascii_styler import draw_ascii_menu
 
 def run_menu(library, user):
     """
@@ -8,12 +9,15 @@ def run_menu(library, user):
     """
     while True:
         clear_screen()
-        print_header(f"BIBLIOTEKININKAS: {user.username}")
-        print("1. Knygų valdymas")
-        print("2. Vartotojų valdymas")
-        print("3. Statistika")
-        print("0. Atsijungti")
-        
+        # Meniu piešiame naudodami draw_ascii_menu
+        menu_options = [
+            ("1", "Knygų valdymas"),
+            ("2", "Vartotojų valdymas"),
+            ("3", "Statistika"),
+            ("0", "Atsijungti")
+        ]
+        draw_ascii_menu("BIBLIOTEKININKO MENIU", menu_options)
+                
         choice = input("\nPasirinkimas: ")
 
         if choice == '1':

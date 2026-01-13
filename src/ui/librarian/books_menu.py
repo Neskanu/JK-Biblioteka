@@ -4,9 +4,9 @@
 #   - Importuoja draw_ascii_table iš src/ui/ascii_styler.py
 #   - Kviečia metodus iš library.book_manager
 
-from src.ui.common import print_header, get_int_input, pause, clear_screen, select_object_from_list # Meniu bendros funkcijos
+from src.ui.common import get_int_input, pause, clear_screen, select_object_from_list # Meniu bendros funkcijos
 from src.ui.librarian import bulk_delete_menu # Masinio trynimo meniu
-from src.ui.ascii_styler import draw_ascii_table, draw_ascii_menu
+from src.ui.ascii_styler import draw_ascii_table, draw_ascii_menu, print_header
 
 def run(library):
     """Knygų valdymo sub-meniu."""

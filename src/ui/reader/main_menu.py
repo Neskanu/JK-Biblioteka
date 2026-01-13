@@ -14,7 +14,6 @@ def run_menu(library, user):
     """
     while True:
         clear_screen()
-        print_header(f"SVEIKI SUGRĮŽĘ, {user.username.upper()}")
         # Meniu piešiame naudodami draw_ascii_menu
         menu_options = [
             ("1", "Knygų katalogas (Paieška, Naujienos)"),

@@ -1,17 +1,20 @@
-from src.ui.common import print_header, get_int_input, pause, clear_screen
+from src.ui.common import get_int_input, pause, clear_screen
+from src.ui.ascii_styler import draw_ascii_table, draw_ascii_menu, print_header
 
 def run(library):
     while True:
         clear_screen()
-        print_header("MASINIS KNYGŲ ŠALINIMAS")
-        print("1. Ištrinti pagal AUTORIŲ")
-        print("2. Ištrinti pagal ŽANRĄ")
-        print("3. Ištrinti SENAS knygas (pagal leidimo metus)")
-        print("4. Nurašyti PRARASTAS knygas (vėluoja > X metų)")
-        print("-" * 40)
-        print("9. ATSTATYTI DUOMENIS (Restore Backup)")
-        print("0. Grįžti atgal")
-        
+        # Meniu piešiame naudodami draw_ascii_menu
+        menu_options = [
+            ("1", "Ištrinti pagal AUTORIŲ"),
+            ("2", "Ištrinti pagal ŽANRĄ"),
+            ("3", "Ištrinti SENAS knygas (pagal leidimo metus)"),
+            ("4", "Nurašyti PRARASTAS knygas (vėluoja > X metų)"),
+            ("9", "ATSTATYTI DUOMENIS (Restore Backup)"),
+            ("0", "Grįžti atgal")
+        ]
+        draw_ascii_menu("MASINIS KNYGŲ ŠALINIMAS", menu_options)
+                
         choice = input("\nPasirinkimas: ")
         
         candidates = []
@@ -60,17 +63,9 @@ def _confirm_and_delete(library, candidates):
         return
 
     clear_screen()
-    print_header(f"RASTA KNYGŲ ŠALINIMUI: {len(candidates)}")
-    
-    # Rodyti pirmas 20, kad neužkištume ekrano
-    for i, book in enumerate(candidates):
-        if i >= 20:
-            print(f"... ir dar {len(candidates) - 20} knygų.")
-            break
-        print(f"- {book.title} ({book.author}, {book.year})")
+    draw_ascii_table(["ID", "Pavadinimas", "Autorius", "Metai"], [[b.id, b.title, b.author, b.year] for b in candidates])
 
-    print("-" * 50)
-    print("DĖMESIO: Šis veiksmas negrįžtamas (nebent turite backup).")
+    print("DĖMESIO: Šis veiksmas negrįžtamas (nebent turite atsarginę kopiją).")
     confirm = input(f"Ar tikrai norite ištrinti šias {len(candidates)} knygas? (rašykite 'TAIP' patvirtinimui): ")
 
     if confirm == 'TAIP':

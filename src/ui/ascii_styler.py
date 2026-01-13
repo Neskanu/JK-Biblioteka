@@ -106,3 +106,9 @@ def draw_ascii_menu(title, options):
         print(f"│  {text:<{width-2}}│")
         
     print(f"└{'─' * width}┘")
+
+def print_header(title):
+    """Atspausdina gražią antraštę."""
+    print("\n" + "="*50)
+    print(f" {title.upper()}")
+    print("="*50)

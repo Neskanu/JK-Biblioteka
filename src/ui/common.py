@@ -13,12 +13,6 @@ def pause():
     """Sustabdo ekraną, kad vartotojas spėtų perskaityti rezultatą."""
     input("\nSpauskite ENTER, kad tęstumėte...")
 
-def print_header(title):
-    """Atspausdina gražią antraštę."""
-    print("\n" + "="*50)
-    print(f" {title.upper()}")
-    print("="*50)
-
 def get_int_input(prompt):
     """
     Prašo vartotojo įvesti skaičių tol, kol įves teisingai.
