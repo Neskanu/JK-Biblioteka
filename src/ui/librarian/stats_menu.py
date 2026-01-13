@@ -13,7 +13,7 @@ def run(library):
 
         if choice == '1':
             books = library.book_manager.get_all_books()
-            borrowed = len([b for b in books if b.is_borrowed])
+            borrowed = len([b for b in books if b.available_copies < b.total_copies])
             users_count = len(library.user_manager.users)
             
             print_header("Bendroji Statistika")

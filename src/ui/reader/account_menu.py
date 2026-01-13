@@ -9,7 +9,7 @@ def run(library, user):
         print_header(f"MANO PASKYRA (ID: {user.id})")
         
         # Suskaičiuojame, kiek turi knygų
-        count = len(user.borrowed_books_ids)
+        count = len(user.active_loans)
         print(f"Jūs turite knygų: {count}")
         print("-" * 30)
         
@@ -27,7 +27,7 @@ def run(library, user):
             _return_process(library, user)
         elif choice == '3':
             # --- Grąžinti knygas po vieną nepatogu, taigi leidžiam grąžinti visas ---
-            if not user.borrowed_books_ids:
+            if not user.active_loans:
                 print("\nNeturite ką grąžinti.")
             else:
                 confirm = input("Ar tikrai norite grąžinti VISAS knygas? (t/n): ")
@@ -44,10 +44,13 @@ def run(library, user):
             pause()
 
 def _get_my_book_objects(library, user):
-    """Pagalbinė funkcija, paverčianti ID sąrašą į objektų sąrašą."""
+    """
+    Pagalbinė funkcija. Mums reikia paversti active_loans (žodynus) 
+    atgal į tikrus Knygų Objektus, kad veiktų 'select_object_from_list' funkcija.
+    """
     my_books = []
-    for b_id in user.borrowed_books_ids:
-        book = library.book_manager.get_book_by_id(b_id)
+    for loan in user.active_loans:
+        book = library.book_manager.get_book_by_id(loan['book_id'])
         if book:
             my_books.append(book)
     return my_books

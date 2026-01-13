@@ -1,20 +1,14 @@
 [
     {
-        "id": "DH8525",
-        "username": "Petras Petrauskas",
-        "role": "reader",
-        "borrowed_books_ids": []
-    },
-    {
-        "id": "AB1234",
-        "username": "Simas",
-        "role": "reader",
-        "borrowed_books_ids": []
-    },
-    {
-        "id": "4a8c5b2b-e4e9-44e1-8691-3b3e4c279f6a",
+        "id": "2ee9e17e-b2a8-40cb-b334-1024a8e2c6e5",
         "username": "admin",
         "role": "librarian",
         "password": "admin"
+    },
+    {
+        "id": "AW4240",
+        "username": "Vardenis Pavardenis",
+        "role": "reader",
+        "active_loans": []
     }
 ]

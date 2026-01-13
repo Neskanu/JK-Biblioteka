@@ -58,7 +58,8 @@ class BookManager:
         """Grąžina sąrašą knygų, kurios senesnės nei X ir nėra paskolintos."""
         candidates = []
         for b in self.books:
-            if int(b.year) < year_threshold and not b.is_borrowed:
+            is_fully_returned = (b.available_copies == b.total_copies)
+            if int(b.year) < year_threshold and is_fully_returned:
                 candidates.append(b)
         return candidates
 
@@ -66,14 +67,17 @@ class BookManager:
         """Grąžina autoriaus knygas, kurios nėra paskolintos."""
         candidates = []
         for b in self.books:
-            if author_name.lower() in b.author.lower() and not b.is_borrowed:
+            is_fully_returned = (b.available_copies == b.total_copies)
+            
+            if author_name.lower() in b.author.lower() and is_fully_returned:
                 candidates.append(b)
         return candidates
 
     def get_candidates_by_genre(self, genre):
         candidates = []
         for b in self.books:
-            if genre.lower() == b.genre.lower() and not b.is_borrowed:
+            is_fully_returned = (b.available_copies == b.total_copies)
+            if genre.lower() == b.genre.lower() and is_fully_returned:
                 candidates.append(b)
         return candidates
 
@@ -82,7 +86,8 @@ class BookManager:
         threshold_date = datetime.now() - timedelta(days=years_overdue * 365)
         candidates = []
         for b in self.books:
-            if b.is_borrowed and b.due_date:
+            is_fully_returned = (b.available_copies == b.total_copies)  
+            if b.due_date and is_fully_returned:
                 try:
                     due_date_obj = datetime.strptime(b.due_date, "%Y-%m-%d")
                     if due_date_obj < threshold_date:

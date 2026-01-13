@@ -39,7 +39,7 @@ def _search_and_borrow(library, user):
 def _browse_available(library, user):
     # Rodo tik tas knygas, kurios nėra paskolintos
     all_books = library.book_manager.get_all_books()
-    available_books = [b for b in all_books if not b.is_borrowed]
+    available_books = [b for b in all_books if b.available_copies == b.total_copies]
     
     selected_book = select_object_from_list(available_books, "Pasirinkite knygą")
     

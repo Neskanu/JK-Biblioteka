@@ -38,7 +38,8 @@ def run(library):
             target_book = select_object_from_list(results, "Kurią knygą ištrinti?")
             
             if target_book:
-                if target_book.is_borrowed:
+                is_fully_returned = (target_book.available_copies == target_book.total_copies)
+                if not is_fully_returned:
                     print(f"\nKLAIDA: Knyga '{target_book.title}' yra paskolinta! Pirma ją reikia grąžinti.")
                 else:
                     confirm = input(f"Ar tikrai norite ištrinti '{target_book.title}'? (t/n): ")
@@ -59,13 +60,13 @@ def run(library):
             if not books:
                 print("Biblioteka tuščia.")
             else:
-                print(f"{'ID (pabaiga)':<15} | {'Metai':<6} | {'Autorius':<30} | {'Pavadinimas'}")
+                print(f"{'ID ':<8} | {'Laisvų/Iš viso kopijų':<20} | {'Autorius':<30} | {'Pavadinimas'}")
                 print("-" * 80)
                 for b in books:
                     # Atspausdiname eilės numerį sąraše
                     short_id = b.id[-4:]  # Paskutinės 4 raidės
-                    status = "(PAIMTA)" if b.is_borrowed else ""
-                    print(f"{short_id:<15} | {b.year:<6} | {b.author:<30} | {b.title} {status}")
+                    qty_info = f"{b.available_copies}/{b.total_copies}"
+                    print(f"{short_id:<15} | {qty_info:<8} | {b.author:<20} | {b.title}")
             pause()
 
         elif choice == '0':

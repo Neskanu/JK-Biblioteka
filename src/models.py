@@ -143,7 +143,7 @@ class Reader(User):
         # Struktūra: [{'book_id': '...', 'due_date': '...', 'title': '...'}]
         if active_loans is None:
             active_loans = []
-        self.borrowed_books_ids = active_loans
+        self.active_loans = active_loans
 
     def to_dict(self):
         data = super().to_dict()
