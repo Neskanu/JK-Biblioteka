@@ -1,4 +1,6 @@
-from src.ui.common import print_header, get_int_input, pause, clear_screen, select_object_from_list
+from src.ui.common import print_header, get_int_input, pause, clear_screen, select_object_from_list # Meniu bendros funkcijos
+from src.ui.librarian import bulk_delete_menu # Masinio trynimo meniu
+
 
 def run(library):
     """Knygų valdymo sub-meniu."""
@@ -6,7 +8,7 @@ def run(library):
         clear_screen()
         print_header("KNYGŲ VALDYMAS")
         print("1. Pridėti naują knygą")
-        print("2. Ištrinti senas knygas")
+        print("2. Masinis šalinimas ir atstatymas")
         print("3. Ištrinti konkrečią knygą")
         print("4. Rodyti visas knygas")
         print("0. Grįžti atgal")
@@ -19,20 +21,16 @@ def run(library):
             author = input("Autorius: ")
             genre = input("Žanras: ")
             year = get_int_input("Leidimo metai: ")
-            
             library.book_manager.add_book(title, author, year, genre)
             print("Knyga sėkmingai pridėta!")
             pause()
 
         elif choice == '2':
-            print("\n--- Knygų Šalinimas ---")
-            year = get_int_input("Ištrinti senesnes nei (metai): ")
-            count = library.book_manager.remove_old_books(year)
-            print(f"Pašalinta knygų: {count}")
-            pause()
+            # Kviečiame sub-meniu modulį
+            bulk_delete_menu.run(library)
 
         elif choice == '3':
-            # --- NAUJA LOGIKA: KONKREČIOS KNYGOS TRYNIMAS ---
+            # --- KONKREČIOS KNYGOS TRYNIMAS ---
             print("\n--- Konkrečios knygos šalinimas ---")
             query = input("Įveskite pavadinimą paieškai: ")
             results = library.book_manager.search_books(query)
@@ -61,12 +59,13 @@ def run(library):
             if not books:
                 print("Biblioteka tuščia.")
             else:
-                print(f"{'ID (pabaiga)':<15} | {'Metai':<6} | {'Autorius':<20} | {'Pavadinimas'}")
+                print(f"{'ID (pabaiga)':<15} | {'Metai':<6} | {'Autorius':<30} | {'Pavadinimas'}")
                 print("-" * 80)
                 for b in books:
-                    short_id = "..." + b.id[-12:] 
+                    # Atspausdiname eilės numerį sąraše
+                    short_id = b.id[-4:]  # Paskutinės 4 raidės
                     status = "(PAIMTA)" if b.is_borrowed else ""
-                    print(f"{short_id:<15} | {b.year:<6} | {b.author:<20} | {b.title} {status}")
+                    print(f"{short_id:<15} | {b.year:<6} | {b.author:<30} | {b.title} {status}")
             pause()
 
         elif choice == '0':

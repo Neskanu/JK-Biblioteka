@@ -1,7 +1,13 @@
+import os
+import json # Reikės backup krovimui
+from datetime import datetime, timedelta # Reikės trinant prarastas knygas
 from src.models import Book
 from src.data_manager import load_data, save_data
+from src.data_manager import load_data, save_data, get_data_file_path
 
-DATA_FILE = 'data/books.json'
+# ... (kelio nustatymas) ...
+DATA_FILE = get_data_file_path('books.json')
+BACKUP_FILE = get_data_file_path('books_backup.json')
 
 class BookManager:
     def __init__(self):
@@ -22,17 +28,81 @@ class BookManager:
         self.save() # Iškart saugome
         return new_book
 
-    def remove_old_books(self, year_threshold):
-        """Ištrina knygas, senesnes nei nurodyti metai."""
+    def get_candidates_by_year(self, year_threshold):
+        """Grąžina sąrašą knygų, kurios senesnės nei X ir nėra paskolintos."""
+        candidates = []
+        for b in self.books:
+            if int(b.year) < year_threshold and not b.is_borrowed:
+                candidates.append(b)
+        return candidates
+
+    def get_candidates_by_author(self, author_name):
+        """Grąžina autoriaus knygas, kurios nėra paskolintos."""
+        candidates = []
+        for b in self.books:
+            if author_name.lower() in b.author.lower() and not b.is_borrowed:
+                candidates.append(b)
+        return candidates
+
+    def get_candidates_by_genre(self, genre):
+        candidates = []
+        for b in self.books:
+            if genre.lower() == b.genre.lower() and not b.is_borrowed:
+                candidates.append(b)
+        return candidates
+
+    def get_candidates_lost(self, years_overdue):
+        """Grąžina knygas, kurios vėluoja daugiau nei X metų."""
+        threshold_date = datetime.now() - timedelta(days=years_overdue * 365)
+        candidates = []
+        for b in self.books:
+            if b.is_borrowed and b.due_date:
+                try:
+                    due_date_obj = datetime.strptime(b.due_date, "%Y-%m-%d")
+                    if due_date_obj < threshold_date:
+                        candidates.append(b)
+                except ValueError:
+                    pass
+        return candidates
+
+    def batch_delete_books(self, books_to_delete):
+        """
+        Ištrina paduotą knygų sąrašą iš pagrindinės bibliotekos.
+        """
         initial_count = len(self.books)
-        # Paliekame tik tas, kurios naujesnės arba lygios metams (>=)
-        # ARBA tas, kurios šiuo metu paskolintos (kad nedingtų skolos)
-        self.books = [b for b in self.books if int(b.year) >= year_threshold or b.is_borrowed]
+        
+        # Sukuriame rinkinį ID greitesniam tikrinimui
+        ids_to_remove = {b.id for b in books_to_delete}
+        
+        # Paliekame tas knygas, kurių ID NĖRA trinamų sąraše
+        self.books = [b for b in self.books if b.id not in ids_to_remove]
         
         removed_count = initial_count - len(self.books)
-        if removed_count > 0:
-            self.save()
+        self.save()
         return removed_count
+
+    # --- BACKUP RESTORE ---
+
+    def restore_from_backup(self):
+        """
+        Bando užkrauti duomenis iš books_backup.json.
+        Grąžina (True/False, žinutė).
+        """
+        if not os.path.exists(BACKUP_FILE):
+            return False, "Atsarginis failas (books_backup.json) nerastas."
+
+        try:
+            # Naudojame tą pačią load_data funkciją arba tiesiogiai json
+            data = load_data(BACKUP_FILE)
+            if not data:
+                return False, "Atsarginis failas tuščias arba sugadintas."
+
+            # Atkuriame objektus
+            self.books = [Book.from_dict(item) for item in data]
+            self.save() # Iškart įrašome į pagrindinį failą
+            return True, f"Sėkmingai atkurta {len(self.books)} knygų."
+        except Exception as e:
+            return False, f"Klaida atkuriant: {e}"
 
     def get_book_by_id(self, book_id):
         """Suranda knygos objektą pagal ID."""

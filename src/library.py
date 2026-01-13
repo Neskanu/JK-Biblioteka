@@ -129,3 +129,26 @@ class Library:
             if book.is_borrowed and book.due_date and book.due_date < today:
                 overdue.append(book)
         return overdue
+    
+    def safe_delete_user(self, user):
+        """
+        Bando ištrinti vartotoją.
+        Jei vartotojas turi skolų -> Grąžina (False, klaidų sąrašas).
+        Jei viskas gerai -> Ištrina ir grąžina (True, sėkmės žinutė).
+        """
+        # 1. Patikriname, ar skaitytojas turi knygų
+        if user.role == 'reader' and user.borrowed_books_ids:
+            # Surenkame knygų pavadinimus, kad UI galėtų juos parodyti
+            borrowed_titles = []
+            for b_id in user.borrowed_books_ids:
+                book = self.book_manager.get_book_by_id(b_id)
+                if book:
+                    borrowed_titles.append(book.title)
+                else:
+                    borrowed_titles.append(f"Nežinoma knyga ({b_id})")
+            
+            return False, borrowed_titles
+
+        # 2. Jei skolų nėra, triname per user_manager
+        self.user_manager.delete_user_from_db(user)
+        return True, "Vartotojas sėkmingai pašalintas."

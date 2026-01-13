@@ -140,6 +140,16 @@
         "borrower_id": null
     },
     {
+        "id": "550e8400-e29b-41d4-a716-446655440015",
+        "title": "Hobitas",
+        "author": "J.R.R. Tolkien",
+        "year": 1937,
+        "genre": "Fantastika",
+        "is_borrowed": false,
+        "due_date": null,
+        "borrower_id": null
+    },
+    {
         "id": "550e8400-e29b-41d4-a716-446655440016",
         "title": "Puikybė ir prietarai",
         "author": "Jane Austen",

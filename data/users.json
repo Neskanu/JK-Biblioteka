@@ -10,5 +10,11 @@
         "username": "Petras Petrauskas",
         "role": "reader",
         "borrowed_books_ids": []
+    },
+    {
+        "id": "LM9314",
+        "username": "Simas",
+        "role": "reader",
+        "borrowed_books_ids": []
     }
 ]

@@ -2,8 +2,10 @@ import os
 from src.models import Librarian, Reader
 from src.data_manager import load_data, save_data
 from src.utils import generate_card_id
+from src.data_manager import load_data, save_data, get_data_file_path
 
-DATA_FILE = 'data/users.json'
+# ... (kelio nustatymas) ...
+DATA_FILE = get_data_file_path('users.json')
 
 class UserManager:
     def __init__(self):
@@ -68,4 +70,46 @@ class UserManager:
                 return user
         return None
     
+    def delete_user(self, user):
+        """Pašalina vartotoją iš sistemos."""
+        if user in self.users:
+            self.users.remove(user)
+            self.save()
+            return True
+        return False
+    
+    def regenerate_reader_id(self, user):
+        """
+        Sugeneruoja naują kortelę skaitytojui, priskiria ją ir išsaugo.
+        Grąžina naująjį ID.
+        """
+        while True:
+            new_card_id = generate_card_id()
+            if not self.get_user_by_id(new_card_id): # Jei tokio ID dar nėra
+                break
+                
+        # Galima pridėti while ciklą unikalumui, kaip darėme registracijoje
+        user.id = new_card_id
+        self.save()
+        return new_card_id
+
+    def update_librarian(self, user, new_username=None, new_password=None):
+        """Atnaujina bibliotekininko duomenis."""
+        if new_username:
+            # !TODO! Čia REIKIA pridėti patikrinimą, ar vardas neužimtas!!!
+            user.username = new_username
+        if new_password:
+            user.password = new_password
+        self.save()
+
+    def delete_user_from_db(self, user):
+        """
+        Fiziškai pašalina vartotoją iš sąrašo ir failo.
+        Šį metodą kvies Library klasė po saugumo patikrinimų.
+        """
+        if user in self.users:
+            self.users.remove(user)
+            self.save()
+            return True
+        return False   
         

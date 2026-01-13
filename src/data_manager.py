@@ -1,6 +1,15 @@
 import json
 import os
 
+def get_data_file_path(filename):
+    """
+    Grąžina pilną kelią iki failų duomenų kataloge.
+    """
+    current_file = os.path.abspath(__file__)
+    src_dir = os.path.dirname(current_file)
+    project_root = os.path.dirname(src_dir)
+    return os.path.join(project_root, 'data', filename)
+
 def load_data(filepath):
     """
     Nuskaito duomenis iš JSON failo.
