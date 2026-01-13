@@ -1,4 +1,4 @@
-from src.ui.common import print_header, get_int_input, pause, clear_screen
+from src.ui.common import print_header, get_int_input, pause, clear_screen, select_object_from_list
 
 def run(library):
     """Knygų valdymo sub-meniu."""
@@ -7,7 +7,8 @@ def run(library):
         print_header("KNYGŲ VALDYMAS")
         print("1. Pridėti naują knygą")
         print("2. Ištrinti senas knygas")
-        print("3. Rodyti visas knygas")
+        print("3. Ištrinti konkrečią knygą")
+        print("4. Rodyti visas knygas")
         print("0. Grįžti atgal")
         
         choice = input("\nPasirinkimas: ")
