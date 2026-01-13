@@ -7,16 +7,15 @@ class Book:
     """
     Klasė, aprašanti vieną konkrečią knygą bibliotekoje.
     """
-    def __init__(self, title, author, year, genre, is_borrowed=False, due_date=None, borrower_id=None, book_id=None):
+    def __init__(self, title, author, year, genre, total_copies=1, available_copies=1, book_id=None):
         """
         Inicijuoja knygos objektą.
         
         Parametrai:
         - book_id: Jei nuskaitome iš failo, paduodame esamą ID. Jei kuriame naują, paliekame None.
         - title, author, year, genre: Knygos informacija.
-        - is_borrowed: Ar knyga šiuo metu pas kažką yra (True/False).
-        - due_date: Iki kada knygą reikia grąžinti (tekstas 'YYYY-MM-DD').
-        - borrower_id: Vartotojo ID, kuris turi šią knygą.
+        - total_copies: Iš viso knygos kopijų bibliotekoje.
+        - available_copies: Laisvų (nepaskolintų) kopijų skaičius.
         """
         # Generuojame unikalų ID. 
         # uuid.uuid4() sukuria atsitiktinį, unikalų kodą (pvz., '550e8400-e29b...').
