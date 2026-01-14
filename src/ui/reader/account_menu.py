@@ -1,5 +1,16 @@
+"""
+FAILAS: src/ui/reader/account_menu.py
+PASKIRTIS: Leidžia skaitytojams peržiūrėti išduotas knygas ir grąžinti jas.
+SUSIJĘ FAILAI:
+  - Valdomas reader/main_menu.py
+  - Naudoja ascii_styler apipavidalinimui.
+KONTEKSTAS:
+  - Valdymo konsolė vartotojui  
+"""
+
+from itertools import count
 from src.ui.common import pause, clear_screen, select_object_from_list
-from src.ui.ascii_styler import draw_ascii_menu, draw_ascii_table, print_header
+from src.ui.ascii_styler import draw_ascii_menu, draw_ascii_table
 
 def run(library, user):
     """
@@ -9,11 +20,6 @@ def run(library, user):
         clear_screen()
         # Suskaičiuojame, kiek turi knygų
         count = len(user.active_loans)
-        
-        
-        print(f"Jūs turite knygų: {count}")
-        print("-" * 30)
-        
         # Meniu piešiame naudodami draw_ascii_menu
         draw_ascii_menu("MANO KNYGOS IR GRĄŽINIMAS", [
             ("1", "Peržiūrėti mano knygas"),
@@ -21,9 +27,9 @@ def run(library, user):
             ("3", "Grąžinti visas knygas"),
             ("0", "Grįžti atgal")
         ])
-
+        print(f"Jūs turite knygų: {count}")
         choice = input("\nPasirinkimas: ")
-
+        clear_screen()
         if choice == '1':
             _show_my_books(library, user)
             pause()
@@ -60,14 +66,28 @@ def _get_my_book_objects(library, user):
     return my_books
 
 def _show_my_books(library, user):
-    # Dabar nereikia konvertuoti ID -> Book Obj, nes active_loans jau turi pavadinimą
+    """
+    Atvaizduoja pasiskolintų knygų sąrašą.
+    """
     if not user.active_loans:
         print("Neturite knygų.")
     else:
-        draw_ascii_table(["ID", "Pavadinimas", "Autorius", "Metai"],
-            [[loan['book_id'], loan['title'], loan['author'], loan['year']] for i, loan in enumerate(user.active_loans, 1)]
-        )
-        print("-" * 30)
+        headers = ["Nr.", "Pavadinimas", "Autorius", "Grąžinti iki"]
+        data = []
+        
+        for i, loan in enumerate(user.active_loans, 1):
+            # --- FIX: Look up the book object to get author details ---
+            book = library.book_manager.get_book_by_id(loan['book_id'])
+            
+            # Jei knyga egzistuoja (nebuvo ištrinta), imame jos autorių
+            author = book.author if book else "Nežinomas"
+            
+            # --- Naudojame 'due_date' iš loan įrašo ---
+            due_date = loan.get('due_date', 'N/A')
+            
+            data.append([i, loan['title'], author, due_date])
+        
+        draw_ascii_table(headers, data, title="Pasiskolintų Knygų Sąrašas")
         
 def _return_process(library, user):
     books = _get_my_book_objects(library, user)

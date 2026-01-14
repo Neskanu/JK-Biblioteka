@@ -70,9 +70,8 @@ def _manage_users(library):
     """Rodo vartotojų sąrašą ir leidžia pasirinkti."""
     while True:
         clear_screen()
-        print_header("VARTOTOJŲ SĄRAŠAS")
         draw_ascii_table(["Nr.", "Rolė", "ID / Vartotojas"],
-            [[i+1, "Skaitytojas" if u.role == 'reader' else "Admin", f"{u.id} ({u.username})"] for i, u in enumerate(library.user_manager.users)]
+            [[i+1, "Skaitytojas" if u.role == 'reader' else "Admin", f"{u.id} ({u.username})"] for i, u in enumerate(library.user_manager.users)], title="Vartotojų Sąrašas"
         )
         users = library.user_manager.users
         
@@ -144,11 +143,12 @@ def _edit_librarian(library, user):
     """Bibliotekininko redagavimo UI."""
     while True:
         clear_screen()
-        print_header(f"REDAGUOJAMAS ADMIN: {user.username}")
-        print("1. Pakeisti vardą")
-        print("2. Pakeisti slaptažodį")
-        print("3. Ištrinti vartotoją")
-        print("0. Grįžti")
+        draw_ascii_menu(f"REDAGUOJAMAS ADMIN: {user.username}", [
+            ("1", "Pakeisti vardą"),
+            ("2", "Pakeisti slaptažodį"),
+            ("3", "Ištrinti vartotoją"),
+            ("0", "Grįžti")
+        ])
         
         choice = input("\nPasirinkimas: ")
         

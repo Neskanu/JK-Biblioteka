@@ -9,7 +9,10 @@ APRAŠYMAS:
   lygiavimui lentelėse ir meniu, užtikrinant vienodą vizualinį stilių visoje programoje.
 """
 
-def draw_ascii_table(headers, rows):
+from turtle import title
+
+
+def draw_ascii_table(headers, rows, title=None):
     """
     Atvaizduoja dinaminę ASCII lentelę pagal pateiktas antraštes ir eilučių duomenis.
     
@@ -38,10 +41,25 @@ def draw_ascii_table(headers, rows):
             if len(cell) > col_widths[i]:
                 col_widths[i] = len(cell)
 
-    # Pridedame šiek tiek tarpo (2 simbolius) kiekvienam stulpeliui dėl skaitomumo
+    # Pridedame šiek tiek tarpų (2 simbolius) kiekvienam stulpeliui dėl skaitomumo
     col_widths = [w + 2 for w in col_widths]
 
-    # 3. Pagalbinės funkcijos linijų piešimui
+    # 3. Jei yra pavadinimas, patikriname, ar nereikia išplėsti lentelės
+    # Lentelės plotis = sum(stulpeliai) + (stulpelių_skaičius - 1) * 1 (tarpai) + 2 (šoniniai rėmeliai)
+    # Tačiau paprastesnis skaičiavimas: sum(col_widths) + len(col_widths) + 1
+    total_table_width = sum(col_widths) + len(col_widths) + 1
+    
+    if title:
+        # Pavadinimo plotis su rėmeliais: len(title) + 4 (tarpai + rėmeliai)
+        required_width = len(title) + 4
+        if required_width > total_table_width:
+            # Jei pavadinimas netelpa, likusį plotį pridedame prie paskutinio stulpelio
+            diff = required_width - total_table_width
+            col_widths[-1] += diff
+            # Atnaujiname bendrą plotį
+            total_table_width += diff
+
+    # 4. Pagalbinės funkcijos linijų piešimui
     def _draw_separator(chars):
         # chars yra tuple: (kairysis_kampas, horizontali, kryžkelė, dešinysis_kampas)
         line = chars[0] + chars[2].join([chars[1] * w for w in col_widths]) + chars[3]
@@ -49,25 +67,34 @@ def draw_ascii_table(headers, rows):
 
     def _draw_row(row_data):
         # Formatuojame tekstą dinamiškai pagal apskaičiuotus pločius
+        # Užpildome tuščiomis reikšmėmis, jei eilutė trumpesnė už antraštes
+        current_row = row_data + [""] * (len(col_widths) - len(row_data))
         # {:{w}} lygiuoja tekstą kairėje su pločiu w
         row_str = "│" + "│".join([f" {cell:<{w-1}}" for cell, w in zip(row_data, col_widths)]) + "│"
         print(row_str)
 
-    # 4. Lentelės atvaizdavimas
-    # Viršutinis rėmelis
-    _draw_separator(("┌", "─", "┬", "┐"))
+    # 5. Atvaizdavimas
+    if title:
+        # Piešiamas pavadinimo blokas
+        print(f"┌{'─' * (total_table_width - 2)}┐")
+        print(f"│{title.center(total_table_width - 2)}│")
+        # Viršutinis rėmelis, kuris jungia pavadinimą su stulpeliais (naudojame ├ ir ┤)
+        _draw_separator(("├", "─", "┬", "┤"))
+    else:
+        # Standartinis viršus
+        _draw_separator(("┌", "─", "┬", "┐"))
     
-    # Antraštė
+    # Antraštės
     _draw_row(headers)
     
-    # Antraštės skirtukas
+    # Skirtukas po antraštėmis
     _draw_separator(("├", "─", "┼", "┤"))
     
-    # Duomenų eilutės
+    # Duomenys
     for row in str_rows:
         _draw_row(row)
         
-    # Apatinis rėmelis
+    # Apačia
     _draw_separator(("└", "─", "┴", "┘"))
 
 
@@ -108,7 +135,7 @@ def draw_ascii_menu(title, options):
     print(f"└{'─' * width}┘")
 
 def print_header(title):
-    """Atspausdina gražią antraštę."""
+    """Atspausdina gražią antraštę (liko iš seniau, turėtų piešti arba kaip meniu, arba kaip lentelę)."""
     print("\n" + "="*50)
     print(f" {title.upper()}")
     print("="*50)

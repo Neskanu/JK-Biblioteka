@@ -6,7 +6,7 @@
 
 from src.ui.common import get_int_input, get_valid_string, get_valid_string, get_valid_year, get_valid_year, pause, clear_screen, select_object_from_list # Meniu bendros funkcijos
 from src.ui.librarian import bulk_delete_menu # Masinio trynimo meniu
-from src.ui.ascii_styler import draw_ascii_table, draw_ascii_menu, print_header
+from src.ui.ascii_styler import draw_ascii_table, draw_ascii_menu
 
 def run(library):
     """Knygų valdymo sub-meniu."""
@@ -81,7 +81,6 @@ def run(library):
         elif choice == '4':
             books = library.book_manager.get_all_books()
             clear_screen()
-            print_header("Knygų Sąrašas")
             if not books:
                 print("Biblioteka tuščia.")
             else:
@@ -97,7 +96,7 @@ def run(library):
                     rows.append([short_id, b.author, b.title, b.year, qty_info])
                 
                 # 3. Atvaizduojame
-                draw_ascii_table(headers, rows)
+                draw_ascii_table(headers, rows, title="Knygų Sąrašas")
                 # -------------------------------------
             pause()
 
