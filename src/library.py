@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from collections import Counter #patogiau kelioms statistikos fuinkcijoms
 from src.book_manager import BookManager
 from src.user_manager import UserManager
 
@@ -229,3 +230,70 @@ class Library:
                 candidates.append(book)
                 
         return candidates
+    
+    def get_advanced_statistics(self):
+        """
+        Surenka išplėstinę statistiką apie žanrus ir vėlavimus.
+        Grąžina žodyną (dict) su rodikliais.
+        """
+        stats = {}
+        
+        # 1. KOKIŲ KNYGŲ YRA DAUGIAUSIAI (Pagal Inventorių)
+        all_genres = [b.genre for b in self.book_manager.books]
+        if all_genres:
+            # Counter automatiškai suskaičiuoja pasikartojimus
+            genre_counts = Counter(all_genres)
+            # Paimame patį populiariausią (grąžina sąrašą [(Elementas, Kiekis)])
+            top_genre, count = genre_counts.most_common(1)[0]
+            stats['inventory_top_genre'] = f"{top_genre} ({count} vnt.)"
+        else:
+            stats['inventory_top_genre'] = "Nėra duomenų"
+
+        # 2. POPULIARIAUSIAS ŽANRAS TARP SKAITYTOJŲ (Pagal aktyvias paskolas)
+        borrowed_genres = []
+        total_overdue_books = 0
+        reader_count = 0
+        
+        today = datetime.now().date()
+        
+        # Einame per visus skaitytojus
+        for user in self.user_manager.users:
+            if user.role == 'reader':
+                reader_count += 1
+                for loan in user.active_loans:
+                    # Surandame knygą, kad sužinotume jos žanrą
+                    book = self.book_manager.get_book_by_id(loan['book_id'])
+                    if book:
+                        borrowed_genres.append(book.genre)
+                    
+                    # Tikriname vėlavimą statistikai
+                    try:
+                        due_obj = datetime.strptime(loan['due_date'], "%Y-%m-%d").date()
+                        if due_obj < today:
+                            total_overdue_books += 1
+                    except ValueError:
+                        pass
+        
+        if borrowed_genres:
+            loan_counts = Counter(borrowed_genres)
+            top_borrowed, b_count = loan_counts.most_common(1)[0]
+            stats['borrowed_top_genre'] = f"{top_borrowed} ({b_count} skolinimai)"
+        else:
+            stats['borrowed_top_genre'] = "Nėra aktyvių skolinimų"
+
+        # 3. VIDUTINIS VĖLUOJANČIŲ KNYGŲ KIEKIS (Vienam skaitytojui)
+        if reader_count > 0:
+            avg_overdue = total_overdue_books / reader_count
+            stats['avg_overdue_per_reader'] = f"{avg_overdue:.2f}"
+        else:
+            stats['avg_overdue_per_reader'] = "0.00"
+            
+        # 4. BIBLIOTEKOS "AMŽIUS" (Vidutiniai leidimo metai)
+        years = [int(b.year) for b in self.book_manager.books if isinstance(b.year, int) or str(b.year).isdigit()]
+        if years:
+            avg_year = sum(years) / len(years)
+            stats['avg_book_year'] = f"{int(avg_year)} metai"
+        else:
+            stats['avg_book_year'] = "-"
+
+        return stats

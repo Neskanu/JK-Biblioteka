@@ -9,6 +9,7 @@ def run(library):
         menu_options = [
             ("1", "Bendroji bibliotekos statistika"),
             ("2", "Vėluojančių knygų sąrašas"),
+            ("3", "Išplėstinė analizė"),
             ("0", "Grįžti atgal")
         ]
         draw_ascii_menu("STATISTIKA", menu_options)
@@ -38,6 +39,20 @@ def run(library):
             else:
                 draw_ascii_table(["ID", "Pavadinimas", "Autorius", "Metai"],
                                  [[b.id, b.title, b.author, b.year] for b in overdue])    
+            pause()
+
+        elif choice == '3':
+            # --- NAUJAS PUNKTAS ---
+            stats = library.get_advanced_statistics()
+            
+            print_header("IŠPLĖSTINĖ ANALIZĖ")
+            
+            print(f"📚  Dominuojantis žanras lentynose:  {stats['inventory_top_genre']}")
+            print(f"🔥  Skaitytojai dažniausiai renkasi: {stats['borrowed_top_genre']}")
+            print("-" * 50)
+            print(f"⚠️  Vidutiniškai vėluojama (knygų/žm.): {stats['avg_overdue_per_reader']}")
+            print(f"📅  Vidutiniai knygų leidimo metai:     {stats['avg_book_year']}")
+            
             pause()
 
         elif choice == '0':
