@@ -1,4 +1,4 @@
-from src.ui.common import pause, clear_screen, get_int_input
+from src.ui.common import pause, clear_screen, get_int_input, get_valid_string
 from src.ui.ascii_styler import print_header, draw_ascii_menu, draw_ascii_table
 
 def run(library):
@@ -30,7 +30,15 @@ def run(library):
 def _register_reader(library):
     clear_screen()
     print_header("SKAITYTOJO REGISTRACIJA")
-    name = input("Vartotojo vardas: ")
+    print("(Rašykite 'CANCEL', jei norite nutraukti)")
+    name = get_valid_string("Vartotojo vardas (min 3 simboliai): ", min_length=3)
+
+    if name.upper() == 'CANCEL':
+        return
+    
+    # Formatuojame vardą gražiai (pvz. jonas -> Jonas)
+    name = name.title()
+
     new_user = library.user_manager.register_reader(name)
     if new_user:
         print(f"Skaitytojas sukurtas! ID: [ {new_user.id} ]")
@@ -41,8 +49,17 @@ def _register_reader(library):
 def _register_librarian(library):
     clear_screen()
     print_header("BIBLIOTEKININKO REGISTRACIJA")
-    name = input("Vartotojo vardas: ")
-    pwd = input("Slaptažodis: ")
+    print("(Rašykite 'CANCEL', jei norite nutraukti)")
+    # --- VALIDACIJA ---
+    name = get_valid_string("Vartotojo vardas (min 3 simboliai): ", min_length=3)
+    
+    if name.upper() == 'CANCEL':
+        return
+    
+    # Formatuojame vardą gražiai (pvz. jonas -> Jonas)
+    name = name.title()
+    pwd = get_valid_string("Slaptažodis: min 6 simboliai ", min_length=6)
+
     if library.user_manager.register_librarian(name, pwd):
         print("Bibliotekininkas užregistruotas.")
     else:
@@ -88,24 +105,23 @@ def _edit_reader(library, user):
     """Skaitytojo redagavimo UI."""
     while True:
         clear_screen()
-        print_header(f"REDAGUOJAMAS SKAITYTOJAS: {user.username}")
-        print(f"Dabartinė kortelė: {user.id}")
-        print("-" * 30)
-        print("1. Išduoti naują kortelę")
-        print("2. Ištrinti skaitytoją")
-        print("0. Grįžti")
-        
+        draw_ascii_menu(f"REDAGUOJAMAS SKAITYTOJAS: {user.username}", [
+            ("1", "Išduoti naują kortelę"),
+            ("2", "Ištrinti skaitytoją"),
+            ("0", "Grįžti")
+        ])
+                
         choice = input("\nPasirinkimas: ")
         
         if choice == '1':
             old_id = user.id
-            # UI tik paprašo vadybininko atlikti darbą
+            # UI paprašo user_manager atlikti darbą
             new_id = library.user_manager.regenerate_reader_id(user)
             print(f"\nSėkmingai! Senas ID: {old_id} -> Naujas ID: {new_id}")
             pause()
             
         elif choice == '2':
-            confirm = input("Ar tikrai ištrinti šį skaitytoją? (t/n): ")
+            confirm = input("Ar tikrai ištrinti šį skaitytoją? (t/N): ")
             if confirm.lower() == 't':
                 # UI kreipiasi į Library dėl saugaus trynimo
                 success, response = library.safe_delete_user(user)
@@ -137,13 +153,13 @@ def _edit_librarian(library, user):
         choice = input("\nPasirinkimas: ")
         
         if choice == '1':
-            new_name = input("Naujas vartotojo vardas: ")
+            new_name = get_valid_string("Naujas vartotojo vardas (min 3 simboliai): ", min_length=3)
             library.user_manager.update_librarian(user, new_username=new_name)
             print("Vardas atnaujintas.")
             pause()
             
         elif choice == '2':
-            new_pwd = input("Naujas slaptažodis: ")
+            new_pwd = get_valid_string("Naujas slaptažodis (min 6 simboliai): ", min_length=6)
             library.user_manager.update_librarian(user, new_password=new_pwd)
             print("Slaptažodis atnaujintas.")
             pause()

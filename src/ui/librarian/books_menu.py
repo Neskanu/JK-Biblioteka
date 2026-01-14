@@ -4,7 +4,7 @@
 #   - Importuoja draw_ascii_table iš src/ui/ascii_styler.py
 #   - Kviečia metodus iš library.book_manager
 
-from src.ui.common import get_int_input, pause, clear_screen, select_object_from_list # Meniu bendros funkcijos
+from src.ui.common import get_int_input, get_valid_string, get_valid_string, get_valid_year, get_valid_year, pause, clear_screen, select_object_from_list # Meniu bendros funkcijos
 from src.ui.librarian import bulk_delete_menu # Masinio trynimo meniu
 from src.ui.ascii_styler import draw_ascii_table, draw_ascii_menu, print_header
 
@@ -26,12 +26,28 @@ def run(library):
 
         if choice == '1':
             print("\n--- Nauja Knyga ---")
-            title = input("Pavadinimas: ")
-            author = input("Autorius: ")
-            genre = input("Žanras: ")
-            year = get_int_input("Leidimo metai: ")
-            library.book_manager.add_book(title, author, year, genre)
-            print("Knyga sėkmingai pridėta!")
+            print("(Rašykite 'CANCEL', jei norite nutraukti)")
+            
+            # Naudojame validaciją
+            title = get_valid_string("Pavadinimas: ")
+            if title.upper() == 'CANCEL': continue # Galimybė atšaukti
+
+            author = get_valid_string("Autorius: ")
+            genre = get_valid_string("Žanras: ")
+            year = get_valid_year("Leidimo metai: ")
+            
+            # Papildomai: galime formatuoti tekstą, kad duomenų bazė būtų graži
+            title = title.title()   # "haris poteris" -> "Haris Poteris"
+            author = author.title() # "j.k. rowling" -> "J.K. Rowling"
+            genre = genre.capitalize() # "fantastika" -> "Fantastika"
+
+            # Kviečiame book_manager
+            # Pastaba: Add_book metodas dabar jau moka padidinti kiekį,
+            # jei knyga tokiu pavadinimu/autoriumi jau yra.
+            book = library.book_manager.add_book(title, author, year, genre)
+            
+            print(f"\nSĖKMĖ: Knyga įtraukta/atnaujinta!")
+            print(f"Dabar turime kopijų: {book.total_copies}")
             pause()
 
         elif choice == '2':
