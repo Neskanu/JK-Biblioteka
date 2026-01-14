@@ -44,6 +44,7 @@ def main():
                 librarian_ui.run_menu(library, user) 
             else:
                 print("Klaida: Neteisingi duomenys.")
+                pause()
 
         elif choice == '2':
             clear_screen()

@@ -6,7 +6,7 @@
         "year": 1949,
         "genre": "Distopija",
         "total_copies": 5,
-        "available_copies": 5
+        "available_copies": 4
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440002",
@@ -15,7 +15,7 @@
         "year": 1933,
         "genre": "Romanas",
         "total_copies": 3,
-        "available_copies": 3
+        "available_copies": 2
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440003",
@@ -177,7 +177,7 @@
         "year": 2005,
         "genre": "Detektyvas",
         "total_copies": 3,
-        "available_copies": 3
+        "available_copies": 2
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440021",
@@ -186,7 +186,7 @@
         "year": 1996,
         "genre": "Fantastika",
         "total_copies": 5,
-        "available_copies": 5
+        "available_copies": 4
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440022",
@@ -195,7 +195,7 @@
         "year": 2008,
         "genre": "Istorinis romanas",
         "total_copies": 4,
-        "available_copies": 4
+        "available_copies": 3
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440023",
@@ -339,7 +339,7 @@
         "year": 1980,
         "genre": "Novelės",
         "total_copies": 1,
-        "available_copies": 0
+        "available_copies": 1
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440039",
@@ -456,6 +456,6 @@
         "year": 2029,
         "genre": "Trileris",
         "total_copies": 1,
-        "available_copies": 0
+        "available_copies": 1
     }
 ]

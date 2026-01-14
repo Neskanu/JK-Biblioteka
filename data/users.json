@@ -6,19 +6,34 @@
         "password": "admin"
     },
     {
-        "id": "LD1603",
+        "id": "HH0420",
         "username": "Vardenis Pavardenis",
         "role": "reader",
         "active_loans": [
             {
-                "book_id": "550e8400-e29b-41d4-a716-446655440038",
-                "title": "Sena skrybėlė",
+                "book_id": "550e8400-e29b-41d4-a716-446655440001",
+                "title": "1984",
                 "due_date": "2026-01-28"
             },
             {
-                "book_id": "5a0dbe0e-ae8f-44a7-9c2c-467bbfd24cb2",
-                "title": "Testas",
-                "due_date": "2026-01-01"
+                "book_id": "550e8400-e29b-41d4-a716-446655440002",
+                "title": "Altorių šešėly",
+                "due_date": "2026-01-28"
+            },
+            {
+                "book_id": "550e8400-e29b-41d4-a716-446655440022",
+                "title": "Silva Rerum",
+                "due_date": "2026-01-28"
+            },
+            {
+                "book_id": "550e8400-e29b-41d4-a716-446655440021",
+                "title": "Sostų žaidimas",
+                "due_date": "2026-01-28"
+            },
+            {
+                "book_id": "550e8400-e29b-41d4-a716-446655440020",
+                "title": "Mergina su drakono tatuiruote",
+                "due_date": "2026-01-28"
             }
         ]
     },
