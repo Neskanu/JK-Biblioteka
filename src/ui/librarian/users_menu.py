@@ -1,15 +1,18 @@
-from src.ui.common import print_header, pause, clear_screen, get_int_input
+from src.ui.common import pause, clear_screen, get_int_input
+from src.ui.ascii_styler import print_header, draw_ascii_menu, draw_ascii_table
 
 def run(library):
     """Vartotojų valdymo sub-meniu."""
     while True:
         clear_screen()
-        print_header("VARTOTOJŲ VALDYMAS")
-        print("1. Registruoti naują Skaitytoją")
-        print("2. Registruoti naują Bibliotekininką")
-        print("3. Redaguoti / Trinti vartotojus")
-        print("0. Grįžti atgal")
-
+        menu_options = [
+            ("1", "Registruoti naują Skaitytoją"),
+            ("2", "Registruoti naują Bibliotekininką"),
+            ("3", "Redaguoti / Trinti vartotojus"),
+            ("0", "Grįžti atgal")
+        ]
+        draw_ascii_menu("VARTOTOJŲ VALDYMAS", menu_options)
+        
         choice = input("\nPasirinkimas: ")
 
         if choice == '1':
@@ -25,7 +28,8 @@ def run(library):
             pause()
 
 def _register_reader(library):
-    print("\n--- Skaitytojo Registracija ---")
+    clear_screen()
+    print_header("SKAITYTOJO REGISTRACIJA")
     name = input("Vartotojo vardas: ")
     new_user = library.user_manager.register_reader(name)
     if new_user:
@@ -35,7 +39,8 @@ def _register_reader(library):
     pause()
 
 def _register_librarian(library):
-    print("\n--- Kolegos Registracija ---")
+    clear_screen()
+    print_header("BIBLIOTEKININKO REGISTRACIJA")
     name = input("Vartotojo vardas: ")
     pwd = input("Slaptažodis: ")
     if library.user_manager.register_librarian(name, pwd):
@@ -49,14 +54,17 @@ def _manage_users(library):
     while True:
         clear_screen()
         print_header("VARTOTOJŲ SĄRAŠAS")
+        draw_ascii_table(["Nr.", "Rolė", "ID / Vartotojas"],
+            [[i+1, "Skaitytojas" if u.role == 'reader' else "Admin", f"{u.id} ({u.username})"] for i, u in enumerate(library.user_manager.users)]
+        )
         users = library.user_manager.users
         
-        print(f"{'Nr.':<4} | {'Rolė':<12} | {'ID / Vartotojas'}")
-        print("-" * 50)
-        for i, u in enumerate(users, 1):
-            display_name = u.id if u.role == 'reader' else u.username
-            role_lt = "Skaitytojas" if u.role == 'reader' else "Admin"
-            print(f"{i:<4} | {role_lt:<12} | {display_name} ({u.username})")
+        # print(f"{'Nr.':<4} | {'Rolė':<12} | {'ID / Vartotojas'}")
+        # print("-" * 50)
+        # for i, u in enumerate(users, 1):
+        #     display_name = u.id if u.role == 'reader' else u.username
+        #     role_lt = "Skaitytojas" if u.role == 'reader' else "Admin"
+        #     print(f"{i:<4} | {role_lt:<12} | {display_name} ({u.username})")
             
         print("-" * 50)
         print("0. Grįžti atgal")

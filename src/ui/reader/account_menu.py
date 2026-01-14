@@ -1,4 +1,5 @@
-from src.ui.common import print_header, pause, clear_screen, select_object_from_list
+from src.ui.common import pause, clear_screen, select_object_from_list
+from src.ui.ascii_styler import draw_ascii_menu, draw_ascii_table, print_header
 
 def run(library, user):
     """
@@ -6,17 +7,20 @@ def run(library, user):
     """
     while True:
         clear_screen()
-        print_header(f"MANO PASKYRA (ID: {user.id})")
-        
         # Suskaičiuojame, kiek turi knygų
         count = len(user.active_loans)
+        
+        
         print(f"Jūs turite knygų: {count}")
         print("-" * 30)
         
-        print("1. Peržiūrėti mano knygas")
-        print("2. Grąžinti knygą")
-        print("3. Grąžinti visas knygas")
-        print("0. Grįžti atgal")
+        # Meniu piešiame naudodami draw_ascii_menu
+        draw_ascii_menu("MANO KNYGOS IR GRĄŽINIMAS", [
+            ("1", "Peržiūrėti mano knygas"),
+            ("2", "Grąžinti knygą"),
+            ("3", "Grąžinti visas knygas"),
+            ("0", "Grįžti atgal")
+        ])
 
         choice = input("\nPasirinkimas: ")
 
@@ -48,8 +52,8 @@ def _get_my_book_objects(library, user):
     Pagalbinė funkcija. Mums reikia paversti active_loans (žodynus) 
     atgal į tikrus Knygų Objektus, kad veiktų 'select_object_from_list' funkcija.
     """
-    my_books = []
-    for loan in user.active_loans:
+    my_books = [] # Sąrašas knygų objektų, kurias turi vartotojas
+    for loan in user.active_loans: # loan yra žodynas su 'book_id' ir 'due_date'
         book = library.book_manager.get_book_by_id(loan['book_id'])
         if book:
             my_books.append(book)
@@ -60,9 +64,11 @@ def _show_my_books(library, user):
     if not user.active_loans:
         print("Neturite knygų.")
     else:
-        for i, loan in enumerate(user.active_loans, 1):
-            print(f"{i}. {loan['title']} (Iki: {loan['due_date']})")
-
+        draw_ascii_table(["ID", "Pavadinimas", "Autorius", "Metai"],
+            [[loan['book_id'], loan['title'], loan['author'], loan['year']] for i, loan in enumerate(user.active_loans, 1)]
+        )
+        print("-" * 30)
+        
 def _return_process(library, user):
     books = _get_my_book_objects(library, user)
     

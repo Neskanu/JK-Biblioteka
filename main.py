@@ -3,8 +3,8 @@ import sys
 from src.library import Library
 from src.ui.librarian import main_menu as librarian_ui
 from src.ui.reader import main_menu as reader_ui
-from src.ui.common import pause, print_header, clear_screen
-from src.ui.ascii_styler import draw_ascii_menu
+from src.ui.common import pause, clear_screen
+from src.ui.ascii_styler import draw_ascii_menu, print_header
 
 # Sukuriame bibliotekos egzempliorių (vieną kartą visai programai)
 library = Library()

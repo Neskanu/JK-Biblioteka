@@ -1,4 +1,5 @@
-from src.ui.common import print_header, pause, clear_screen, select_object_from_list
+from src.ui.common import pause, clear_screen, select_object_from_list
+from src.ui.ascii_styler import print_header, draw_ascii_menu, draw_ascii_table
 
 def run(library, user):
     """
@@ -6,11 +7,14 @@ def run(library, user):
     """
     while True:
         clear_screen()
-        print_header("KNYGŲ KATALOGAS")
-        print("1. Ieškoti pagal pavadinimą/autorių")
-        print("2. Rodyti visas laisvas knygas") # Nauja patogi funkcija
-        print("0. Grįžti atgal")
-
+        # Meniu piešiame naudodami draw_ascii_menu
+        menu_options = [
+            ("1", "Ieškoti knygų"),
+            ("2", "Rodyti visas laisvas knygas"),
+            ("0", "Grįžti atgal")
+        ]
+        draw_ascii_menu("KNYGŲ KATALOGAS", menu_options)
+        
         choice = input("\nPasirinkimas: ")
 
         if choice == '1':

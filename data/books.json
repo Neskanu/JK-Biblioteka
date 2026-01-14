@@ -448,5 +448,14 @@
         "genre": "Romanas",
         "total_copies": 3,
         "available_copies": 3
+    },
+    {
+        "id": "5a0dbe0e-ae8f-44a7-9c2c-467bbfd24cb2",
+        "title": "Testas",
+        "author": "T. Testavičius",
+        "year": 2029,
+        "genre": "Trileris",
+        "total_copies": 1,
+        "available_copies": 1
     }
 ]
