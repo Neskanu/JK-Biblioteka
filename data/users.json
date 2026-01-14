@@ -6,7 +6,7 @@
         "password": "admin"
     },
     {
-        "id": "AW4240",
+        "id": "LD1603",
         "username": "Vardenis Pavardenis",
         "role": "reader",
         "active_loans": [
@@ -18,7 +18,7 @@
             {
                 "book_id": "5a0dbe0e-ae8f-44a7-9c2c-467bbfd24cb2",
                 "title": "Testas",
-                "due_date": "2026-01-28"
+                "due_date": "2026-01-01"
             }
         ]
     },
@@ -27,5 +27,11 @@
         "username": "Alfonsas",
         "role": "reader",
         "active_loans": []
+    },
+    {
+        "id": "c9e30028-9dc4-4197-bbf2-c53201037c1b",
+        "username": "Aaa",
+        "role": "librarian",
+        "password": "aaaqqq"
     }
 ]

@@ -51,10 +51,10 @@ def get_valid_year(prompt):
             
             # Rėžiai: Nuo Gutenberg'o spaudos (1400) iki kitų metų (leidyba į priekį)
             # Galite keisti rėžius pagal poreikį (pvz. nuo 0)
-            if 1000 <= value <= current_year + 1:
+            if -1000 <= value <= current_year + 1:
                 return value
             else:
-                print(f"Klaida: Metai turi būti tarp 1000 ir {current_year + 1}.")
+                print(f"Klaida: Metai turi būti tarp -1000 ir {current_year + 1}.")
         except ValueError:
             print("Klaida: Įveskite sveikąjį skaičių (pvz., 2023).")
 
