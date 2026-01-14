@@ -81,21 +81,6 @@ class BookManager:
                 candidates.append(b)
         return candidates
 
-    def get_candidates_lost(self, years_overdue):
-        """Grąžina knygas, kurios vėluoja daugiau nei X metų."""
-        threshold_date = datetime.now() - timedelta(days=years_overdue * 365)
-        candidates = []
-        for b in self.books:
-            is_fully_returned = (b.available_copies == b.total_copies)  
-            if b.due_date and is_fully_returned:
-                try:
-                    due_date_obj = datetime.strptime(b.due_date, "%Y-%m-%d")
-                    if due_date_obj < threshold_date:
-                        candidates.append(b)
-                except ValueError:
-                    pass
-        return candidates
-
     def batch_delete_books(self, books_to_delete):
         """
         Ištrina paduotą knygų sąrašą iš pagrindinės bibliotekos.

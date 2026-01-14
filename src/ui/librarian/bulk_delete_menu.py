@@ -36,7 +36,8 @@ def run(library):
             
         elif choice == '4':
             years = get_int_input("Kiek metų vėluoja knyga? (pvz., 5): ")
-            candidates = library.book_manager.get_candidates_lost(years)
+            # Kviečiame naują metodą iš Library, o ne iš book_manager
+            candidates = library.get_candidates_lost(years) 
             _confirm_and_delete(library, candidates)
 
         elif choice == '9':

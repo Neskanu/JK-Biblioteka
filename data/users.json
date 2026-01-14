@@ -16,5 +16,11 @@
                 "due_date": "2026-01-27"
             }
         ]
+    },
+    {
+        "id": "HG1718",
+        "username": "Alfonsas",
+        "role": "reader",
+        "active_loans": []
     }
 ]

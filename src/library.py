@@ -201,3 +201,31 @@ class Library:
         # 2. Jei skolų nėra, triname per user_manager
         self.user_manager.delete_user_from_db(user)
         return True, "Vartotojas sėkmingai pašalintas."
+    
+    def get_candidates_lost(self, years_overdue):
+        """
+        Suranda knygas, kurių grąžimo terminas vėluoja daugiau nei X metų ().
+        """
+        threshold_date = datetime.now() - timedelta(days=years_overdue * 365)
+        lost_book_ids = set() # Naudojame aibę, kad nesikartotų
+        
+        # 1. Einame per vartotojus ir ieškome senų skolų
+        for user in self.user_manager.users:
+            if user.role == 'reader':
+                for loan in user.active_loans:
+                    try:
+                        due_date_obj = datetime.strptime(loan['due_date'], "%Y-%m-%d")
+                        # Jei terminas baigėsi seniau nei prieš X metų
+                        if due_date_obj < threshold_date:
+                            lost_book_ids.add(loan['book_id'])
+                    except ValueError:
+                        pass
+        
+        # 2. Pagal surastus ID surenkame tikrus knygų objektus
+        candidates = []
+        for book_id in lost_book_ids:
+            book = self.book_manager.get_book_by_id(book_id)
+            if book:
+                candidates.append(book)
+                
+        return candidates
