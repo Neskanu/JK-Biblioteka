@@ -46,12 +46,12 @@ def run(library):
             stats = library.get_advanced_statistics()
             
             print_header("IŠPLĖSTINĖ ANALIZĖ")
+            draw_ascii_table(["Statistika", "Reikšmė"], 
+                                                    ["Dominuojantis žanras lentynose", stats['inventory_top_genre']],
+                                                     ["Skaitytojai dažniausiai renkasi", stats['borrowed_top_genre']],
+                                                     ["Vidutiniškai vėluoja (knygų/žm.)", stats['avg_overdue_per_reader']],
+                                                     ["Vidutiniai knygų leidimo metai", stats['avg_book_year']])
             
-            print(f"📚  Dominuojantis žanras lentynose:  {stats['inventory_top_genre']}")
-            print(f"🔥  Skaitytojai dažniausiai renkasi: {stats['borrowed_top_genre']}")
-            print("-" * 50)
-            print(f"⚠️  Vidutiniškai vėluojama (knygų/žm.): {stats['avg_overdue_per_reader']}")
-            print(f"📅  Vidutiniai knygų leidimo metai:     {stats['avg_book_year']}")
             
             pause()
 
