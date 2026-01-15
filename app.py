@@ -27,9 +27,7 @@ if 'user' not in st.session_state:
 # --- NAVIGACIJA ---
 def main():
     if st.session_state.user is None:
-        # Prisijungimo puslapiui bibliotekos objekto paprastai reikia autentifikacijai
-        # Jei auth.login_page() dar nepritaikyta, gali tekti pakoreguoti ir ją, 
-        # bet kol kas paliekame kaip yra, nebent gausite klaidą ten.
+        # Prisijungimo puslapis
         auth.login_page() 
     else:
         # Patikriname rolę ir rodome atitinkamą UI

@@ -11,6 +11,7 @@ CONTEXT:
 
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 def render_dashboard(library):
     # --- SIDEBAR ---
@@ -165,7 +166,127 @@ def _render_users_view(library):
                     st.info("Knygų nėra.")
 
 def _render_books_view(library):
-    """Knygų sąrašas su redagavimu ir automatinu Available atnaujinimu."""
+    """Knygų sąrašas su redagavimu ir išplėstu masiniu trynimu."""
+    
+    # --- 1. MASINIO TRYNIMO ĮRANKIAI ---
+    with st.expander("🗑️ Masinis Knygų Nurašymas (Advanced)"):
+        # Sukuriame 4 skirtukus
+        tab_list, tab_year, tab_author, tab_genre = st.tabs([
+            "Pagal ID sąrašą", 
+            "Pagal metus", 
+            "Pagal Autorių", 
+            "Pagal Žanrą"
+        ])
+        
+        # A. Pagal ID sąrašą
+        with tab_list:
+            st.caption("Tinka kopijavimui iš Excel arba skenerio.")
+            ids_input = st.text_area("ID sąrašas (kiekvienas naujoje eilutėje)", height=100)
+            
+            if st.button("Trinti pagal ID", type="primary"):
+                if not ids_input.strip():
+                    st.warning("Sąrašas tuščias.")
+                else:
+                    id_list = [line.strip() for line in ids_input.split('\n') if line.strip()]
+                    books_to_delete = []
+                    skipped = []
+                    
+                    for bid in id_list:
+                        book = library.book_manager.get_by_id(bid)
+                        if book:
+                            if book.available_copies < book.total_copies:
+                                skipped.append(book.title)
+                            else:
+                                books_to_delete.append(book)
+                    
+                    if books_to_delete:
+                        count = library.book_manager.batch_delete_books(books_to_delete)
+                        library.book_manager.save()
+                        st.success(f"Ištrinta knygų: {count}")
+                        st.rerun()
+                    
+                    if skipped:
+                        st.error(f"Nepavyko ištrinti (paskolintos): {len(skipped)}")
+
+        # B. Pagal metus
+        with tab_year:
+            st.caption("Nurašyti senas knygas.")
+            year_threshold = st.number_input("Ištrinti knygas, išleistas iki (imtinai):", min_value=1900, max_value=datetime.now().year, value=1990)
+            
+            # Randame kandidatus (tik tas, kurios nėra paskolintos)
+            all_old_books = [b for b in library.book_manager.books if b.year <= year_threshold]
+            deletable_old = [b for b in all_old_books if b.available_copies == b.total_copies]
+            locked_old = len(all_old_books) - len(deletable_old)
+            
+            if deletable_old:
+                st.warning(f"Rasta {len(deletable_old)} senų knygų, kurias galima trinti.")
+                if locked_old > 0:
+                    st.info(f"(Dar {locked_old} knygų yra per senos, bet šiuo metu paskolintos - jos liks).")
+                
+                if st.button(f"PATVIRTINTI: Trinti {len(deletable_old)} knygų"):
+                    count = library.book_manager.batch_delete_books(deletable_old)
+                    library.book_manager.save()
+                    st.success(f"Sėkmingai ištrinta: {count}")
+                    st.rerun()
+            else:
+                st.info("Kandidatų trynimui nerasta.")
+
+        # C. Pagal Autorių (NAUJAS)
+        with tab_author:
+            st.caption("Nurašyti visas konkretaus autoriaus knygas.")
+            # Sudarome unikalų autorių sąrašą
+            authors = sorted(list(set(b.author for b in library.book_manager.books if b.author)))
+            
+            if authors:
+                selected_author = st.selectbox("Pasirinkite autorių:", authors)
+                
+                # Analizė
+                author_books = [b for b in library.book_manager.books if b.author == selected_author]
+                to_delete = [b for b in author_books if b.available_copies == b.total_copies]
+                locked_count = len(author_books) - len(to_delete)
+                
+                st.write(f"Viso knygų: **{len(author_books)}** | Galima trinti: **{len(to_delete)}** | Paskolinta: **{locked_count}**")
+                
+                if to_delete:
+                    if st.button(f"Trinti visas '{selected_author}' knygas ({len(to_delete)} vnt.)", type="primary"):
+                        count = library.book_manager.batch_delete_books(to_delete)
+                        library.book_manager.save()
+                        st.success(f"Autoriaus '{selected_author}' knygos ištrintos ({count}).")
+                        st.rerun()
+                else:
+                    st.info("Nėra knygų, kurias būtų galima ištrinti (visos paskolintos arba jų nėra).")
+            else:
+                st.info("Bibliotekoje nėra autorių duomenų.")
+
+        # D. Pagal Žanrą (NAUJAS)
+        with tab_genre:
+            st.caption("Nurašyti visą žanrą.")
+            genres = sorted(list(set(b.genre for b in library.book_manager.books if b.genre)))
+            
+            if genres:
+                selected_genre = st.selectbox("Pasirinkite žanrą:", genres)
+                
+                # Analizė
+                genre_books = [b for b in library.book_manager.books if b.genre == selected_genre]
+                to_delete = [b for b in genre_books if b.available_copies == b.total_copies]
+                locked_count = len(genre_books) - len(to_delete)
+                
+                st.write(f"Viso knygų: **{len(genre_books)}** | Galima trinti: **{len(to_delete)}** | Paskolinta: **{locked_count}**")
+                
+                if to_delete:
+                    if st.button(f"Trinti žanrą '{selected_genre}' ({len(to_delete)} vnt.)", type="primary"):
+                        count = library.book_manager.batch_delete_books(to_delete)
+                        library.book_manager.save()
+                        st.success(f"Žanro '{selected_genre}' knygos ištrintos ({count}).")
+                        st.rerun()
+                else:
+                    st.info("Šiame žanre nėra laisvų knygų trynimui.")
+            else:
+                st.info("Bibliotekoje nėra žanrų duomenų.")
+
+    st.divider()
+
+    # --- 2. PAGRINDINĖ LENTELĖ ---
     books = library.book_manager.get_all()
     if not books:
         st.info("Bibliotekoje knygų nėra.")
@@ -178,7 +299,7 @@ def _render_books_view(library):
         data_for_df.append(item)
     
     df = pd.DataFrame(data_for_df)
-    df.set_index("id", inplace=True) # Slepiame ID
+    df.set_index("id", inplace=True)
 
     column_config = {
         "title": st.column_config.TextColumn("Pavadinimas", width="large", required=True),
@@ -201,7 +322,7 @@ def _render_books_view(library):
         key="book_editor"
     )
 
-    if st.button("💾 Išsaugoti pakeitimus", type="primary"):
+    if st.button("💾 Išsaugoti pakeitimus lentelėje", type="primary"):
         changes_count, delete_count = 0, 0
         books_to_delete, skipped = [], []
         errors = []
@@ -220,22 +341,16 @@ def _render_books_view(library):
 
                 # 2. REDAGAVIMAS
                 changed = False
-                
-                # Standartiniai laukai
                 if book_obj.title != row['title']: book_obj.title = row['title']; changed = True
                 if book_obj.author != row['author']: book_obj.author = row['author']; changed = True
                 if int(book_obj.year) != int(row['year']): book_obj.year = int(row['year']); changed = True
                 if book_obj.genre != row['genre']: book_obj.genre = row['genre']; changed = True
                 
-                # KIEKIO KEITIMAS (SVARBU: Automatinis available atnaujinimas)
                 new_total = int(row['total_copies'])
                 if int(book_obj.total_copies) != new_total:
                     diff = new_total - book_obj.total_copies
-                    
-                    # PATIKRINIMAS: Ar sumažinus kiekį, 'available' netaps neigiamas?
-                    # Tai reikštų, kad bandome ištrinti knygas, kurios dabar yra pas skaitytojus.
                     if book_obj.available_copies + diff < 0:
-                        errors.append(f"Negalima sumažinti '{book_obj.title}' iki {new_total} vnt. (Paskolinta: {book_obj.total_copies - book_obj.available_copies})")
+                        errors.append(f"Negalima sumažinti '{book_obj.title}' iki {new_total} vnt.")
                     else:
                         book_obj.total_copies = new_total
                         book_obj.available_copies += diff
@@ -243,11 +358,9 @@ def _render_books_view(library):
 
                 if changed: changes_count += 1
         
-        # Vykdome veiksmus
         if books_to_delete: delete_count = library.book_manager.batch_delete_books(books_to_delete)
         library.book_manager.save()
         
-        # Atvaizduojame rezultatus
         if skipped: st.error(f"Negalima trinti (paskolinta): {', '.join(skipped)}")
         if errors: 
             for e in errors: st.error(e)
