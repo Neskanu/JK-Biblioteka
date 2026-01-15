@@ -1,62 +1,48 @@
-from src.ui.common import pause, clear_screen, select_object_from_list
-from src.ui.ascii_styler import print_header, draw_ascii_menu, draw_ascii_table
+"""
+FILE: src/ui/reader/discover_menu.py
+PURPOSE: Skaitytojo knygų katalogo meniu (Router).
+RELATIONSHIPS:
+  - Importuoja catalog_browser.py ir borrow_flow.py
+CONTEXT:
+  - Sujungia paiešką su pasiėmimu į vieną ciklą.
+"""
+
+from src.ui.common import clear_screen, pause
+from src.ui.ascii_styler import draw_ascii_menu
+# Importuojame naujus modulius
+from src.ui.reader import catalog_browser, borrow_flow
 
 def run(library, user):
-    """
-    Knygų paieškos ir skolinimosi meniu.
-    """
+    """Knygų paieškos ir pasiėmimo meniu ciklas."""
     while True:
         clear_screen()
-        # Meniu piešiame naudodami draw_ascii_menu
+        
         menu_options = [
-            ("1", "Ieškoti knygų"),
-            ("2", "Rodyti visas laisvas knygas"),
+            ("1", "Rodyti visas knygas"),
+            ("2", "Ieškoti knygos"),
             ("0", "Grįžti atgal")
         ]
+        
         draw_ascii_menu("KNYGŲ KATALOGAS", menu_options)
         
         choice = input("\nPasirinkimas: ")
+        
+        selected_book = None
 
         if choice == '1':
-            _search_and_borrow(library, user)
+            # 1. Naršymas
+            selected_book = catalog_browser.list_all_books(library)
+            
         elif choice == '2':
-            _browse_available(library, user)
+            # 2. Paieška
+            selected_book = catalog_browser.search_books(library)
+            
         elif choice == '0':
             break
         else:
             print("Neteisingas pasirinkimas.")
             pause()
-
-def _search_and_borrow(library, user):
-    print("\n--- Paieška ---")
-    query = input("Įveskite paieškos frazę: ")
-    results = library.book_manager.search_books(query)
-    
-    # Filtruojame, kad rodytų tik laisvas knygas (neprivaloma, bet patogu)
-    # Galima rodyti ir užimtas, bet su prierašu (PAIMTA)
-    
-    selected_book = select_object_from_list(results, "Pasirinkite knygą, kurią norite pasiimti")
-    
-    if selected_book:
-        _process_borrow(library, user, selected_book)
-
-def _browse_available(library, user):
-    # Rodo tik tas knygas, kurios nėra paskolintos
-    all_books = library.book_manager.get_all_books()
-    available_books = [b for b in all_books if b.available_copies == b.total_copies]
-    
-    selected_book = select_object_from_list(available_books, "Pasirinkite knygą")
-    
-    if selected_book:
-        _process_borrow(library, user, selected_book)
-
-def _process_borrow(library, user, book):
-    """Pagalbinė funkcija skolinimosi veiksmui atlikti."""
-    # Pabandome pasiskolinti
-    success, message = library.borrow_book(user.id, book.id)
-    
-    if success:
-        print(f"\nSĖKMĖ: {message}")
-    else:
-        print(f"\nKLAIDA: {message}")
-    pause()
+            
+        # 3. Veiksmas (jei vartotojas kažką pasirinko naršydamas ar ieškodamas)
+        if selected_book:
+            borrow_flow.process_borrowing(library, user, selected_book)

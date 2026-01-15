@@ -6,8 +6,8 @@ RELATIONSHIPS:
   - Vykdo safe_delete_user logiką iš library.py
 """
 
-from src.ui.common import print_header, pause, clear_screen, get_int_input
-from src.ui.ascii_styler import draw_ascii_table
+from src.ui.common import pause, clear_screen, get_int_input
+from src.ui.ascii_styler import draw_ascii_table, print_header
 
 def manage_users_loop(library):
     """Pagrindinis ciklas vartotojų peržiūrai ir redagavimui."""

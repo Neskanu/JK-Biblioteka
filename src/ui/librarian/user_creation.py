@@ -8,11 +8,12 @@ CONTEXT:
   - Atskira logika kūrimui, kad nemaišytume su redagavimu.
 """
 
-from src.ui.common import print_header, pause
+from src.ui.common import pause
+from src.ui.ascii_styler import print_header
 
 def register_reader(library):
     """Tvarko skaitytojo registracijos procesą."""
-    print("\n--- Skaitytojo Registracija ---")
+    print_header("Skaitytojo Registracija")
     name = input("Vartotojo vardas: ")
     if not name:
         print("Vardas negali būti tuščias.")
@@ -29,7 +30,7 @@ def register_reader(library):
 
 def register_librarian(library):
     """Tvarko bibliotekininko registracijos procesą."""
-    print("\n--- Kolegos (Admin) Registracija ---")
+    print_header("Kolegos (Admin) Registracija")
     name = input("Vartotojo vardas: ")
     pwd = input("Slaptažodis: ")
     
