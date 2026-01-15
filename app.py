@@ -27,13 +27,25 @@ if 'user' not in st.session_state:
 # --- NAVIGACIJA ---
 def main():
     if st.session_state.user is None:
-        auth.login_page()
+        # Prisijungimo puslapiui bibliotekos objekto paprastai reikia autentifikacijai
+        # Jei auth.login_page() dar nepritaikyta, gali tekti pakoreguoti ir ją, 
+        # bet kol kas paliekame kaip yra, nebent gausite klaidą ten.
+        auth.login_page() 
     else:
         # Patikriname rolę ir rodome atitinkamą UI
         if st.session_state.user.role == 'librarian':
-            admin_ui.render_dashboard()
+            # ČIA BUVO KLAIDA: Pridedame argumentą (st.session_state.library)
+            admin_ui.render_dashboard(st.session_state.library)
+            
         elif st.session_state.user.role == 'reader':
-            reader_ui.render_dashboard()
+            # Tikėtina, kad ir reader_ui ateityje reikės bibliotekos objekto
+            # Jei reader_ui.render_dashboard() dar nepakeista, šis pakeitimas gali mesti klaidą.
+            # Jei reader_ui dar senas, palikite skliaustus tuščius: reader_ui.render_dashboard()
+            # Bet geriausia praktika - perduoti visur.
+            try:
+                reader_ui.render_dashboard(st.session_state.library)
+            except TypeError:
+                reader_ui.render_dashboard()
 
 if __name__ == "__main__":
     main()

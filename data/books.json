@@ -6,7 +6,7 @@
         "year": 1949,
         "genre": "Distopija",
         "total_copies": 5,
-        "available_copies": 4
+        "available_copies": 5
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440002",
@@ -141,7 +141,7 @@
         "year": 1813,
         "genre": "Klasika",
         "total_copies": 2,
-        "available_copies": 2
+        "available_copies": 1
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440017",
@@ -150,7 +150,7 @@
         "year": 1866,
         "genre": "Klasika",
         "total_copies": 3,
-        "available_copies": 3
+        "available_copies": 2
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440018",
@@ -240,7 +240,7 @@
         "year": 1877,
         "genre": "Klasika",
         "total_copies": 2,
-        "available_copies": 2
+        "available_copies": 1
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440028",
@@ -455,24 +455,6 @@
         "author": "T. Testavičius",
         "year": 2029,
         "genre": "Trileris",
-        "total_copies": 1,
-        "available_copies": 1
-    },
-    {
-        "id": "c4e731dd-a81e-47f9-b066-f6a052356afd",
-        "title": "Antras Testas",
-        "author": "Testė Testavičienė",
-        "year": 2026,
-        "genre": "Trileris",
-        "total_copies": 1,
-        "available_copies": 0
-    },
-    {
-        "id": "acdb14f2-703d-476f-9148-5a66e76e334b",
-        "title": "Opapa",
-        "author": "Žirnis Ir Pupa",
-        "year": 1999,
-        "genre": "Vaikams",
         "total_copies": 1,
         "available_copies": 1
     }

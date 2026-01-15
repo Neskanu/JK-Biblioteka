@@ -17,7 +17,7 @@ def render_dashboard():
         st.info(f"ID: {user.id}")
         menu = st.radio("Meniu", ["Knygų katalogas", "Mano knygos"])
         st.divider()
-        if st.button("Atsijungti", type="primary", use_container_width=True):
+        if st.button("Atsijungti", type="primary", width='content'):
             logout()
 
     if menu == "Knygų katalogas":
