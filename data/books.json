@@ -456,7 +456,7 @@
         "year": 2029,
         "genre": "Trileris",
         "total_copies": 1,
-        "available_copies": 0
+        "available_copies": 1
     },
     {
         "id": "c4e731dd-a81e-47f9-b066-f6a052356afd",
@@ -464,6 +464,15 @@
         "author": "Testė Testavičienė",
         "year": 2026,
         "genre": "Trileris",
+        "total_copies": 1,
+        "available_copies": 0
+    },
+    {
+        "id": "acdb14f2-703d-476f-9148-5a66e76e334b",
+        "title": "Opapa",
+        "author": "Žirnis Ir Pupa",
+        "year": 1999,
+        "genre": "Vaikams",
         "total_copies": 1,
         "available_copies": 1
     }

@@ -46,7 +46,7 @@ class AuthService:
         if self.repo.get_by_username(username):
             return False 
         
-        new_admin = Librarian(username, password)
+        new_admin = Librarian(username, role='librarian', password=password)
         self.repo.add(new_admin)
         return True
 
@@ -61,7 +61,7 @@ class AuthService:
             if not self.repo.get_by_id(new_id): # Jei ID laisvas - nutraukiame ciklą
                 break
         
-        new_reader = Reader(username, user_id=new_id)
+        new_reader = Reader(username, role='reader', user_id=new_id)
         self.repo.add(new_reader)
         return new_reader
         

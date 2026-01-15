@@ -1,51 +1,50 @@
+"""
+FILE: src/models.py
+PURPOSE: Apibrėžia programos duomenų struktūras (Modelius).
+CONTEXT:
+  - Naudojame modernią Python biblioteką 'dataclasses'.
+  - Tai leidžia išvengti daug pasikartojančio kodo (boilerplate), kurį
+    tekdavo rašyti senesnėse Python versijose (pvz., __init__ metodus).
+"""
+
 import uuid
-from datetime import datetime
+from dataclasses import dataclass, field
+from typing import List, Dict, Any
 
-# --- Knygos Modelis ---
-
+# @dataclass yra "dekoratorius". Jis automatiškai sugeneruoja klasei metodus:
+# __init__() - konstruktorių
+# __repr__() - gražų atvaizdavimą spausdinant (print)
+# __eq__() - objektų palyginimą
+@dataclass
 class Book:
     """
-    Klasė, aprašanti vieną konkrečią knygą bibliotekoje.
+    Modelis, atstovaujantis vieną knygą.
     """
-    def __init__(self, title, author, year, genre, total_copies=1, available_copies=1, book_id=None):
-        """
-        Inicijuoja knygos objektą.
-        
-        Parametrai:
-        - book_id: Jei nuskaitome iš failo, paduodame esamą ID. Jei kuriame naują, paliekame None.
-        - title, author, year, genre: Knygos informacija.
-        - total_copies: Iš viso knygos kopijų bibliotekoje.
-        - available_copies: Laisvų (nepaskolintų) kopijų skaičius.
-        """
-        # Generuojame unikalų ID. 
-        # uuid.uuid4() sukuria atsitiktinį, unikalų kodą (pvz., '550e8400-e29b...').
-        # Tai užtikrina, kad net ir knygos vienodais pavadinimais turės skirtingus ID.
-        self.id = book_id if book_id else str(uuid.uuid4())
-        
-        self.title = title
-        self.author = author
-        self.year = year
-        self.genre = genre
-        
-        self.total_copies = total_copies
-        self.available_copies = available_copies
+    # Type Hinting (Tipų sufleriai): 'title: str' sako, kad laukas turi būti tekstas.
+    # Tai netikrina tipų vykdymo metu, bet padeda programuotojams ir IDE.
+    title: str
+    author: str
+    year: int
+    genre: str
+    
+    # Numatomosios reikšmės (Default values):
+    # Jei kuriant objektą nenurodysime šių reikšmių, jos bus lygios 1.
+    total_copies: int = 1
+    available_copies: int = 1
+    
+    # field(default_factory=...) naudojame, kai norime dinaminės numatytosios reikšmės.
+    # Jei rašytume tiesiog 'id: str = str(uuid.uuid4())', visiems objektams ID būtų tas pats!
+    # Lambda funkcija užtikrina, kad kaskart kuriant naują knygą, sugeneruojamas NAUJAS kodas.
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
-    def __str__(self):
-        """
-        Specialus Python metodas. Kai kviečiame print(knyga), suveikia šis kodas.
-        Grąžina gražiai suformatuotą tekstą atvaizdavimui konsolėje.
-        """
+    def __str__(self) -> str:
+        """Vartotojui draugiškas atvaizdavimas (naudojamas spausdinant meniu)."""
         return f"{self.title} - {self.author} | Laisva: {self.available_copies}/{self.total_copies}"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
-        PAVERTIMAS Į ŽODYNĄ (Serialization).
-        
-        Kadangi negalime tiesiogiai įrašyti Python objekto į JSON failą,
-        turime jį paversti į standartinį žodyną (dictionary).
-        
-        Grąžina:
-        - dict: žodynas su visais knygos duomenimis.
+        Serializacija: Objektas -> Žodynas (dict).
+        Reikalinga, norint išsaugoti duomenis į JSON failą.
         """
         return {
             "id": self.id,
@@ -58,104 +57,95 @@ class Book:
         }
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data: Dict[str, Any]) -> 'Book':
         """
-        ATKŪRIMAS IŠ ŽODYNO (Deserialization).
-        
-        Šis metodas gauna duomenis iš JSON failo (kaip žodyną) ir sukuria
-        naują Book objektą.
-        
-        @classmethod reiškia, kad metodas kviečiamas ne konkrečiam objektui, 
-        o pačiai klasei (pvz., Book.from_dict(...)).
-        
-        Parametrai:
-        - data: žodynas su knygos informacija.
+        Deserializacija: Žodynas -> Objektas.
+        Reikalinga, skaitant duomenis iš JSON failo.
         """
         return cls(
-            book_id=data["id"],          # Atstatome tą patį ID
             title=data["title"],
             author=data["author"],
-            year=data["year"],
+            year=int(data["year"]), # Užtikriname, kad metai būtų skaičius
             genre=data["genre"],
             total_copies=data.get("total_copies", 1),
-            available_copies=data.get("available_copies", 1)
+            available_copies=data.get("available_copies", 1),
+            id=data.get("id", str(uuid.uuid4())) # Jei JSON faile nėra ID, sukuriame naują
         )
 
 # --- Vartotojų Modeliai ---
 
+@dataclass
 class User:
     """
     Bazinė vartotojo klasė.
-    Tiek bibliotekininkas, tiek skaitytojas turės vardą ir ID.
+    Kitos klasės (Librarian, Reader) paveldės šiuos laukus.
     """
-    def __init__(self, username, role, user_id=None):
-        # Jei ID nepaduotas, generuojame naują
-        self.id = user_id if user_id else str(uuid.uuid4())
-        self.username = username
-        self.role = role # 'admin' arba 'reader'
+    username: str
+    role: str
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
-    def to_dict(self):
-        """
-        Paverčia bazinius vartotojo duomenis į žodyną.
-        Vaikinės klasės (Librarian/Reader) naudos šį metodą savo duomenims papildyti.
-        """
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
             "username": self.username,
             "role": self.role
         }
 
+@dataclass
 class Librarian(User):
     """
-    Bibliotekininkas.
-    Paveldi viską iš User, bet papildomai turi slaptažodį.
+    Bibliotekininkas (Admin).
+    Paveldi 'username', 'role' ir 'id' iš User klasės.
     """
-    def __init__(self, username, password, user_id=None):
-        # Kviečiame tėvinės klasės (User) __init__ metodą
-        super().__init__(username, role="librarian", user_id=user_id)
-        self.password = password
+    password: str = ""
 
-    def to_dict(self):
-        # Pirmiausia gauname bazinį žodyną iš tėvinės klasės
-        data = super().to_dict() 
-        # Pridedame bibliotekininko specifinį lauką
-        data["password"] = self.password 
+    def __post_init__(self):
+        """
+        Šis specialus metodas dataclasses veikia KAIP konstruktoriaus pabaiga.
+        Čia mes 'kietai' nustatome rolę, kad ji visada būtų 'librarian'.
+        """
+        self.role = "librarian"
+
+    def to_dict(self) -> Dict[str, Any]:
+        # Paimame bazinį žodyną iš tėvinės klasės (User)
+        data = super().to_dict()
+        # Pridedame specifinį lauką
+        data["password"] = self.password
         return data
 
     @classmethod
-    def from_dict(cls, data):
-        # Sukuriame Librarian objektą iš duomenų
+    def from_dict(cls, data: Dict[str, Any]) -> 'Librarian':
         return cls(
-            user_id=data["id"],
+            id=data["id"],
             username=data["username"],
+            role="librarian",
             password=data["password"]
         )
 
+@dataclass
 class Reader(User):
     """
     Skaitytojas.
-    Paveldi iš User, bet turi pasiimtų knygų sąrašą.
+    Turi papildomą sąrašą 'active_loans' pasiskolintoms knygoms.
     """
-    def __init__(self, username, user_id=None, active_loans=None):
-        super().__init__(username, role="reader", user_id=user_id)
-        
-        # Saugome ne ID sąrašą, o žodynų sąrašą.
-        # Struktūra: [{'book_id': '...', 'due_date': '...', 'title': '...'}]
-        if active_loans is None:
-            active_loans = []
-        self.active_loans = active_loans
+    # DĖMESIO: Sąrašams (list) negalima naudoti 'active_loans = []', nes tada
+    # visi skaitytojai dalinsis TUO PAČIU sąrašu (Python nuorodų specifika).
+    # field(default_factory=list) sukuria naują tuščią sąrašą kiekvienam objektui.
+    active_loans: List[Dict[str, str]] = field(default_factory=list)
 
-    def to_dict(self):
+    def __post_init__(self):
+        self.role = "reader"
+
+    def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
-        # Pridedame specifinį lauką - knygų ID sąrašą
         data["active_loans"] = self.active_loans
         return data
 
     @classmethod
-    def from_dict(cls, data):
-        # .get() metodas saugus - jei rakto nėra, grąžins tuščią sąrašą []
+    def from_dict(cls, data: Dict[str, Any]) -> 'Reader':
         return cls(
-            user_id=data["id"],
+            id=data["id"],
             username=data["username"],
+            role="reader",
             active_loans=data.get("active_loans", [])
         )
