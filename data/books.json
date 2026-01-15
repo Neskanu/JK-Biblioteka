@@ -42,7 +42,7 @@
         "year": 1958,
         "genre": "Modernizmas",
         "total_copies": 1,
-        "available_copies": 1
+        "available_copies": 0
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440006",
@@ -195,7 +195,7 @@
         "year": 2008,
         "genre": "Istorinis romanas",
         "total_copies": 4,
-        "available_copies": 3
+        "available_copies": 4
     },
     {
         "id": "550e8400-e29b-41d4-a716-446655440023",

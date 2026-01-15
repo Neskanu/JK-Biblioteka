@@ -146,78 +146,174 @@ def admin_dashboard():
 
 def reader_dashboard():
     user = st.session_state.user
-    st.sidebar.title(f"👋 Sveiki, {user.username}")
-    st.sidebar.info(f"Kortelė: {user.id}")
     
-    menu = st.sidebar.radio("Meniu", ["Mano knygos", "Knygų katalogas"])
-    
-    if st.sidebar.button("Atsijungti"):
-        logout()
+    with st.sidebar:
+        st.title(f"👋 Sveiki, {user.username}")
+        st.info(f"Kortelė: {user.id}")
+        
+        menu = st.radio(
+            "Meniu", 
+            ["Knygų katalogas", "Mano knygos"],
+            captions=["Ieškoti ir pasiimti knygas", "Grąžinti turimas knygas"]
+        )
+        
+        st.divider()
+        if st.button("Atsijungti", type="primary", width=stretch):
+            logout()
 
-    if menu == "Mano knygos":
+    # --- 1. KNYGŲ KATALOGAS (INTERAKTYVI LENTELĖ) ---
+    if menu == "Knygų katalogas":
+        st.header("🔎 Knygų Katalogas")
+        
+        all_books = library.book_manager.get_all_books()
+        if not all_books:
+            st.warning("Biblioteka tuščia.")
+            return
+
+        # 1. Paruošiame duomenis
+        # Rodome tik tas knygas, kurias galima pasiimti (available > 0), 
+        # arba visas su indikacija. Kad būtų paprasčiau - rodome visas, bet leidžiame rinktis.
+        
+        data = []
+        for b in all_books:
+            # Sukuriame žodyną kiekvienai eilutei
+            row = b.to_dict()
+            # Pridedame stulpelį "Pasirinkti", kuris pradžioje yra False (nepažymėtas)
+            row['Pasirinkti'] = False
+            # Pridedame formatuotą likutį
+            row['Likutis'] = f"{b.available_copies}/{b.total_copies}"
+            data.append(row)
+
+        df = pd.DataFrame(data)
+
+        # Filtravimas (Paieška)
+        search_query = st.text_input("🔍 Paieška (Pavadinimas/Autorius)")
+        if search_query:
+            mask = (
+                df['title'].str.contains(search_query, case=False) | 
+                df['author'].str.contains(search_query, case=False)
+            )
+            df = df[mask]
+
+        # 2. Interaktyvi lentelė (st.data_editor)
+        # column_config leidžia konfigūruoti, kaip atrodo stulpeliai (pvz., checkbox)
+        
+        st.caption("Pažymėkite varneles prie knygų, kurias norite pasiimti 👇")
+        
+        edited_df = st.data_editor(
+            df,
+            key="catalog_editor", # Svarbu unikalus raktas
+            column_config={
+                "Pasirinkti": st.column_config.CheckboxColumn(
+                    "Imti?",
+                    help="Pažymėkite norėdami pasiimti",
+                    default=False,
+                    width=small
+                ),
+                "title": "Pavadinimas",
+                "author": "Autorius",
+                "year": "Metai",
+                "genre": "Žanras",
+                "Likutis": "Laisva vnt.",
+            },
+            # Paslepiame techninius stulpelius
+            disabled=["title", "author", "year", "genre", "Likutis"], # Neleidžiame redaguoti teksto
+            hide_index=True,
+            column_order=["Pasirinkti", "title", "author", "year", "genre", "Likutis"] # Pirmas stulpelis - varnelė
+        )
+
+        # 3. Veiksmo mygtukas
+        # Išfiltruojame tik tas eilutes, kurias vartotojas pažymėjo (kur 'Pasirinkti' yra True)
+        selected_books = edited_df[edited_df['Pasirinkti'] == True]
+        
+        if not selected_books.empty:
+            count = len(selected_books)
+            st.info(f"Pasirinkote knygų: {count}")
+            
+            if st.button(f"Pasiimti pasirinktas ({count})", type="primary"):
+                success_count = 0
+                errors = []
+                
+                # Iteruojame per pasirinktas knygas ir bandome skolintis
+                for index, row in selected_books.iterrows():
+                    success, msg = library.borrow_book(user.id, row['id'])
+                    if success:
+                        success_count += 1
+                    else:
+                        errors.append(f"{row['title']}: {msg}")
+                
+                # Rezultatų atvaizdavimas
+                if success_count > 0:
+                    st.toast(f"Sėkmingai paimta knygų: {success_count}!", icon="✅")
+                
+                if errors:
+                    for err in errors:
+                        st.error(err)
+                
+                if success_count > 0:
+                    # Palaukiame ir perkrauname, kad atsinaujintų sąrašas
+                    import time
+                    time.sleep(1.5)
+                    st.rerun()
+
+    # --- 2. MANO KNYGOS (INTERAKTYVI LENTELĖ) ---
+    elif menu == "Mano knygos":
         st.header("📚 Mano Pasiimtos Knygos")
         
         if not user.active_loans:
-            st.info("Neturite pasiėmę jokių knygų.")
+            st.info("Šiuo metu neturite pasiskolinę knygų.")
         else:
-            # Rodome lentelę
-            loans_df = pd.DataFrame(user.active_loans)
-            st.dataframe(loans_df, width='stretch')
+            # Paruošiame duomenis su checkbox
+            data = []
+            for loan in user.active_loans:
+                # loan yra žodynas {'book_id':..., 'title':..., 'due_date':...}
+                row = loan.copy()
+                row['Grąžinti'] = False # Checkbox stulpelis
+                data.append(row)
             
-            # Grąžinimo forma
+            loans_df = pd.DataFrame(data)
+            
+            st.caption("Pažymėkite varneles prie knygų, kurias norite grąžinti 👇")
+            
+            edited_loans = st.data_editor(
+                loans_df,
+                key="loans_editor",
+                column_config={
+                    "Grąžinti": st.column_config.CheckboxColumn(
+                        "Grąžinti?",
+                        default=False
+                    ),
+                    "title": "Pavadinimas",
+                    "due_date": "Terminas",
+                    "book_id": "ID"
+                },
+                disabled=["title", "due_date", "book_id"],
+                hide_index=True,
+                column_order=["Grąžinti", "title", "due_date"]
+            )
+            
+            # Veiksmai su pažymėtomis
+            selected_returns = edited_loans[edited_loans['Grąžinti'] == True]
+            
+            if not selected_returns.empty:
+                count = len(selected_returns)
+                # Mygtukas atsiranda tik kai kažkas pažymėta
+                if st.button(f"Grąžinti pasirinktas ({count})", type="primary"):
+                    for index, row in selected_returns.iterrows():
+                        library.return_book(user.id, row['book_id'])
+                    
+                    st.success(f"Sėkmingai grąžinta knygų: {count}")
+                    import time
+                    time.sleep(1)
+                    st.rerun()
+            
             st.divider()
-            st.subheader("Grąžinti knygą")
-            
-            # Sudarome sąrašą pasirinkimui
-            loan_options = {f"{l['title']} (iki {l['due_date']})": l['book_id'] for l in user.active_loans}
-            selected_loan_text = st.selectbox("Pasirinkite knygą grąžinimui", list(loan_options.keys()))
-            
-            if st.button("Grąžinti pasirinktą knygą"):
-                book_id = loan_options[selected_loan_text]
-                success, msg = library.return_book(user.id, book_id)
-                if success:
+            # Paliekame "Grąžinti viską" kaip atsarginį variantą
+            with st.expander("Kiti veiksmai"):
+                if st.button("Grąžinti VISAS knygas iš karto"):
+                    success, msg = library.return_all_books(user.id)
                     st.success(msg)
                     st.rerun()
-                else:
-                    st.error(msg)
-            
-            if st.button("Grąžinti VISAS knygas", type="primary"):
-                success, msg = library.return_all_books(user.id)
-                st.success(msg)
-                st.rerun()
-
-    elif menu == "Knygų katalogas":
-        st.header("🔎 Katalogas")
-        
-        # Paieška
-        search_query = st.text_input("Ieškoti pagal pavadinimą arba autorių")
-        
-        if search_query:
-            books = library.book_manager.search_books(search_query)
-        else:
-            # Rodome tik laisvas knygas pagal nutylėjimą
-            all_books = library.book_manager.get_all_books()
-            books = [b for b in all_books if b.available_copies > 0]
-        
-        if books:
-            for book in books:
-                with st.container(border=True):
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.subheader(f"{book.title}")
-                        st.caption(f"{book.author} | {book.year} | {book.genre}")
-                        st.text(f"Likutis: {book.available_copies}/{book.total_copies}")
-                    with col2:
-                        # Unikalus raktas mygtukui būtinas cikle
-                        if st.button("Pasiimti", key=f"borrow_{book.id}"):
-                            success, msg = library.borrow_book(user.id, book.id)
-                            if success:
-                                st.toast(msg, icon="✅")
-                                st.rerun() # Perkrauname, kad atsinaujintų likučiai
-                            else:
-                                st.toast(msg, icon="❌")
-        else:
-            st.warning("Knygų nerasta.")
 
 # --- PAGRINDINIS PROGRAMOS CIKLAS ---
 
