@@ -36,8 +36,8 @@ class LoanService:
         
         Grąžina: (bool, str) -> (Sėkmė, Pranešimas)
         """
-        user = self.user_manager.get_user_by_id(user_id)
-        book = self.book_manager.get_book_by_id(book_id)
+        user = self.user_manager.get_by_id(user_id)
+        book = self.book_manager.get_by_id(book_id)
 
         if not user: return False, "Vartotojas nerastas."
         if not book: return False, "Knyga nerasta."
@@ -83,10 +83,10 @@ class LoanService:
         """
         Vykdo knygos grąžinimo procedūrą.
         """
-        user = self.user_manager.get_user_by_id(user_id)
+        user = self.user_manager.get_by_id(user_id)
         # Knygos objektas gali būti None, jei knyga buvo ištrinta iš sistemos,
         # bet vartotojas vis dar turi įrašą apie ją.
-        book = self.book_manager.get_book_by_id(book_id)
+        book = self.book_manager.get_by_id(book_id)
 
         if not user: return False, "Vartotojas nerastas."
 
@@ -117,7 +117,7 @@ class LoanService:
         """
         Grąžina visas konkretaus vartotojo knygas.
         """
-        user = self.user_manager.get_user_by_id(user_id)
+        user = self.user_manager.get_by_id(user_id)
         if not user or not user.active_loans:
             return False, "Nėra ką grąžinti."
             

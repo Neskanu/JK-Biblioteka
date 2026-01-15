@@ -121,7 +121,7 @@ def _render_books_management(library):
         if not to_delete.empty:
             if st.button(f"Ištrinti pažymėtas ({len(to_delete)})", type="primary"):
                 for _, row in to_delete.iterrows():
-                    obj = library.book_manager.get_book_by_id(row['id'])
+                    obj = library.book_manager.get_by_id(row['id'])
                     if obj: library.book_manager.books.remove(obj)
                 library.book_manager.save()
                 st.success("Ištrinta.")

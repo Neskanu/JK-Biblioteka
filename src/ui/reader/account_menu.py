@@ -60,7 +60,7 @@ def _get_my_book_objects(library, user):
     """
     my_books = [] # Sąrašas knygų objektų, kurias turi vartotojas
     for loan in user.active_loans: # loan yra žodynas su 'book_id' ir 'due_date'
-        book = library.book_manager.get_book_by_id(loan['book_id'])
+        book = library.book_manager.get_by_id(loan['book_id'])
         if book:
             my_books.append(book)
     return my_books
@@ -77,7 +77,7 @@ def _show_my_books(library, user):
         
         for i, loan in enumerate(user.active_loans, 1):
             # --- FIX: Look up the book object to get author details ---
-            book = library.book_manager.get_book_by_id(loan['book_id'])
+            book = library.book_manager.get_by_id(loan['book_id'])
             
             # Jei knyga egzistuoja (nebuvo ištrinta), imame jos autorių
             author = book.author if book else "Nežinomas"

@@ -11,23 +11,18 @@
         "role": "reader",
         "active_loans": [
             {
+                "book_id": "550e8400-e29b-41d4-a716-446655440040",
+                "title": "Nematomas žmogus",
+                "due_date": "2026-01-29"
+            },
+            {
                 "book_id": "550e8400-e29b-41d4-a716-446655440001",
                 "title": "1984",
-                "due_date": "2026-01-28"
+                "due_date": "2026-01-29"
             },
             {
-                "book_id": "550e8400-e29b-41d4-a716-446655440002",
-                "title": "Altorių šešėly",
-                "due_date": "2026-01-28"
-            },
-            {
-                "book_id": "550e8400-e29b-41d4-a716-446655440021",
-                "title": "Sostų žaidimas",
-                "due_date": "2026-01-28"
-            },
-            {
-                "book_id": "550e8400-e29b-41d4-a716-446655440005",
-                "title": "Balta drobulė",
+                "book_id": "5a0dbe0e-ae8f-44a7-9c2c-467bbfd24cb2",
+                "title": "Testas",
                 "due_date": "2026-01-29"
             }
         ]

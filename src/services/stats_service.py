@@ -59,7 +59,7 @@ class StatsService:
         # Konvertuojame ID į objektus
         candidates = []
         for book_id in lost_book_ids:
-            book = self.book_manager.get_book_by_id(book_id)
+            book = self.book_manager.get_by_id(book_id)
             if book:
                 candidates.append(book)
         return candidates
@@ -88,7 +88,7 @@ class StatsService:
             if user.role == 'reader':
                 reader_count += 1
                 for loan in user.active_loans:
-                    book = self.book_manager.get_book_by_id(loan['book_id'])
+                    book = self.book_manager.get_by_id(loan['book_id'])
                     if book:
                         borrowed_genres.append(book.genre)
                     
