@@ -26,11 +26,6 @@
                 "due_date": "2026-01-28"
             },
             {
-                "book_id": "550e8400-e29b-41d4-a716-446655440020",
-                "title": "Mergina su drakono tatuiruote",
-                "due_date": "2026-01-28"
-            },
-            {
                 "book_id": "550e8400-e29b-41d4-a716-446655440005",
                 "title": "Balta drobulė",
                 "due_date": "2026-01-29"
@@ -48,5 +43,11 @@
         "username": "Aaa",
         "role": "librarian",
         "password": "aaaqqq"
+    },
+    {
+        "id": "RO5124",
+        "username": "Jonas",
+        "role": "reader",
+        "active_loans": []
     }
 ]

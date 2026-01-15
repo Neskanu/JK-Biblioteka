@@ -70,22 +70,26 @@ def logout():
 # --- BIBLIOTEKININKO SĄSAJA ---
 
 def admin_dashboard():
+    # Šoninė juosta
     st.sidebar.title(f"👤 {st.session_state.user.username} (Admin)")
-    menu = st.sidebar.radio("Meniu", ["Statistika", "Knygų valdymas", "Vartotojai", "Vėluojančios knygos"])
+    menu = st.sidebar.radio(
+        "Meniu", 
+        ["Statistika", "Knygų valdymas", "Vartotojų valdymas", "Vėluojančios knygos"]
+    )
     
-    if st.sidebar.button("Atsijungti"):
+    st.sidebar.divider()
+    if st.sidebar.button("Atsijungti", type="primary", use_container_width=True):
         logout()
 
+    # --- 1. STATISTIKA ---
     if menu == "Statistika":
         st.header("📊 Bibliotekos Statistika")
         
-        # Gauname statistiką
         books = library.book_manager.get_all_books()
         borrowed = len([b for b in books if b.available_copies < b.total_copies])
         users_count = len(library.user_manager.users)
         stats = library.get_advanced_statistics()
         
-        # Atvaizduojame korteles (Metrics)
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Vartotojai", users_count)
         col2.metric("Knygų fondas", len(books))
@@ -94,51 +98,231 @@ def admin_dashboard():
         
         st.divider()
         st.subheader("Išplėstinė analizė")
-        st.info(f"📚 **Populiariausias žanras:** {stats.get('inventory_top_genre', '-')}")
-        st.info(f"📖 **Skaitytojai renkasi:** {stats.get('borrowed_top_genre', '-')}")
-        st.warning(f"⚠️ **Vid. vėlavimas:** {stats.get('avg_overdue_per_reader', '0')} knygos/žm.")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.info(f"📚 **Populiariausias žanras:** {stats.get('inventory_top_genre', '-')}")
+            st.warning(f"⚠️ **Vid. vėlavimas:** {stats.get('avg_overdue_per_reader', '0')} knygos/žm.")
+        with c2:
+            st.info(f"📖 **Skaitytojai renkasi:** {stats.get('borrowed_top_genre', '-')}")
+            st.success(f"📅 **Vidutiniai metai:** {stats.get('avg_book_year', '-')}")
 
+    # --- 2. KNYGŲ VALDYMAS (SU PAIEŠKA) ---
     elif menu == "Knygų valdymas":
         st.header("📚 Knygų Valdymas")
-        
-        with st.expander("Pridėti naują knygą"):
+
+        # 1. Pridėjimo forma (sutraukta)
+        with st.expander("➕ Pridėti naują knygą"):
             with st.form("add_book"):
-                title = st.text_input("Pavadinimas")
-                author = st.text_input("Autorius")
-                genre = st.text_input("Žanras")
-                year = st.number_input("Metai", min_value=1000, max_value=2030, step=1)
-                submit = st.form_submit_button("Pridėti knygą")
+                col1, col2 = st.columns(2)
+                with col1:
+                    title = st.text_input("Pavadinimas")
+                    author = st.text_input("Autorius")
+                with col2:
+                    genre = st.text_input("Žanras")
+                    year = st.number_input("Metai", min_value=1000, max_value=2030, step=1, value=2023)
+                
+                # Papildomai: kopijų kiekis (jei backend palaiko, jei ne - default 1)
+                # Standartinė add_book funkcija prideda 1 vnt. Galima kviesti cikle, jei reiktų daugiau.
+                
+                submit = st.form_submit_button("Išsaugoti knygą")
                 
                 if submit:
                     if title and author:
                         library.book_manager.add_book(title, author, int(year), genre)
-                        st.success(f"Knyga '{title}' pridėta!")
+                        st.success(f"Knyga '{title}' sėkmingai pridėta!")
+                        import time
+                        time.sleep(1)
+                        st.rerun()
                     else:
                         st.error("Būtina įvesti pavadinimą ir autorių.")
+
+        st.divider()
+
+        # 2. Paieška ir filtravimas
+        col_search, col_sort = st.columns([3, 1])
+        with col_search:
+            search_query = st.text_input("🔍 Ieškoti knygos (Pavadinimas arba Autorius)")
         
-        # Rodyti knygų lentelę
-        books = library.book_manager.get_all_books()
-        if books:
-            # Konvertuojame objektus į dict sąrašą DataFrame'ui
-            data = [b.to_dict() for b in books]
-            df = pd.DataFrame(data)
-            # Paslepiame ID stulpelį, nes jis ilgas ir negražus
-            st.dataframe(df.drop(columns=['id']), width='stretch')
+        # Gauname knygas
+        if search_query:
+            # Naudojame backend paiešką arba filtruojame patys
+            books = library.book_manager.search_books(search_query)
         else:
-            st.info("Biblioteka tuščia.")
+            books = library.book_manager.get_all_books()
 
-    elif menu == "Vartotojai":
-        st.header("👥 Vartotojų Sąrašas")
-        users = library.user_manager.users
-        if users:
-            data = [{"ID": u.id, "Vardas": u.username, "Rolė": u.role} for u in users]
-            st.dataframe(pd.DataFrame(data), width='stretch')
+        # 3. Lentelė
+        if books:
+            # Paruošiame duomenis atvaizdavimui
+            data = []
+            for b in books:
+                row = b.to_dict()
+                # Pridedame stulpelį trynimui/veiksmams
+                row['Veiksmas'] = False 
+                data.append(row)
+            
+            df = pd.DataFrame(data)
+            
+            # Rūšiavimas (jei reikia)
+            df = df.sort_values(by='title')
 
+            st.caption(f"Rasta knygų: {len(books)}")
+
+            # Interaktyvi lentelė
+            edited_df = st.data_editor(
+                df,
+                key="admin_books_editor",
+                width="stretch",
+                column_config={
+                    "Veiksmas": st.column_config.CheckboxColumn("Trinti?", width="small"),
+                    "title": "Pavadinimas",
+                    "author": "Autorius",
+                    "year": st.column_config.NumberColumn("Metai", format="%d"),
+                    "genre": "Žanras",
+                    "available_copies": "Laisva",
+                    "total_copies": "Viso",
+                    "id": st.column_config.TextColumn("ID", width="small")
+                },
+                disabled=["title", "author", "year", "genre", "available_copies", "total_copies", "id"],
+                hide_index=True,
+                column_order=["Veiksmas", "title", "author", "year", "genre", "available_copies", "total_copies"]
+            )
+            
+            # Trynimo logika
+            to_delete = edited_df[edited_df['Veiksmas'] == True]
+            if not to_delete.empty:
+                st.error(f"DĖMESIO: Pažymėjote {len(to_delete)} knygų trynimui.")
+                if st.button("Patvirtinti trynimą", type="primary"):
+                    deleted_count = 0
+                    for index, row in to_delete.iterrows():
+                        # Čia reiktų tiesioginės trynimo funkcijos pagal ID
+                        # Kadangi manager turi remove metodą pagal objektą, surandame objektą
+                        book_obj = library.book_manager.get_book_by_id(row['id'])
+                        if book_obj:
+                            library.book_manager.books.remove(book_obj)
+                            deleted_count += 1
+                    
+                    library.book_manager.save()
+                    st.success(f"Ištrinta knygų: {deleted_count}")
+                    import time
+                    time.sleep(1)
+                    st.rerun()
+
+        else:
+            st.info("Knygų nerasta.")
+
+    # --- 3. VARTOTOJŲ VALDYMAS (REDAGAVIMAS IR KŪRIMAS) ---
+    elif menu == "Vartotojų valdymas":
+        st.header("👥 Vartotojų Administravimas")
+        
+        tab1, tab2 = st.tabs(["📋 Sąrašas ir Redagavimas", "➕ Registruoti naują"])
+        
+        # --- TAB 1: SĄRAŠAS IR REDAGAVIMAS ---
+        with tab1:
+            users = library.user_manager.users
+            if not users:
+                st.info("Vartotojų nėra.")
+            else:
+                # 1. Pasirenkame vartotoją iš sąrašo
+                user_options = {f"{u.username} ({u.role}) - ID: {u.id}": u for u in users}
+                selected_label = st.selectbox("Pasirinkite vartotoją redagavimui:", list(user_options.keys()))
+                
+                if selected_label:
+                    target_user = user_options[selected_label]
+                    
+                    st.divider()
+                    st.subheader(f"Redaguojamas: {target_user.username}")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    # Forma redagavimui
+                    with col1:
+                        with st.form("edit_user_form"):
+                            new_name = st.text_input("Vartotojo vardas", value=target_user.username)
+                            
+                            new_pass = ""
+                            if target_user.role == 'librarian':
+                                new_pass = st.text_input("Naujas slaptažodis (palikite tuščią, jei nekeičiate)", type="password")
+                            
+                            save_btn = st.form_submit_button("Atnaujinti duomenis")
+                            
+                            if save_btn:
+                                # Atnaujiname vardą
+                                target_user.username = new_name
+                                # Atnaujiname slaptažodį (tik adminams)
+                                if target_user.role == 'librarian' and new_pass:
+                                    target_user.password = new_pass # Čia reiktų hashinimo, bet mokomaisiais tikslais ok
+                                
+                                library.user_manager.save()
+                                st.success("Duomenys atnaujinti!")
+                                st.rerun()
+
+                    # Trynimo mygtukas
+                    with col2:
+                        st.write("Pavojinga zona")
+                        if st.button(f"Ištrinti vartotoją {target_user.username}", type="primary"):
+                            success, msg = library.safe_delete_user(target_user)
+                            if success:
+                                st.success(msg)
+                                import time
+                                time.sleep(1)
+                                st.rerun()
+                            else:
+                                st.error("Klaida trinant vartotoją:")
+                                # Jei msg yra sąrašas (knygų pavadinimai)
+                                if isinstance(msg, list):
+                                    st.write("Vartotojas turi negrąžintų knygų:")
+                                    for item in msg:
+                                        st.text(f"- {item}")
+                                else:
+                                    st.write(msg)
+
+        # --- TAB 2: REGISTRUOTI NAUJĄ ---
+        with tab2:
+            role_choice = st.radio("Kį norite registruoti?", ["Skaitytojas", "Bibliotekininkas (Admin)"])
+            
+            with st.form("create_user_form"):
+                name = st.text_input("Vartotojo vardas / Vardas Pavardė")
+                
+                password = ""
+                if role_choice == "Bibliotekininkas (Admin)":
+                    password = st.text_input("Slaptažodis", type="password")
+                
+                submit_create = st.form_submit_button("Sukurti vartotoją")
+                
+                if submit_create:
+                    if not name:
+                        st.error("Įveskite vardą.")
+                    else:
+                        if role_choice == "Skaitytojas":
+                            new_u = library.user_manager.register_reader(name)
+                            if new_u:
+                                st.success(f"Skaitytojas sukurtas! Jo kortelės ID: **{new_u.id}**")
+                                st.info("Būtinai perduokite ID skaitytojui.")
+                            else:
+                                st.error("Nepavyko sukurti (toks vardas galbūt jau yra).")
+                        else:
+                            if not password:
+                                st.error("Bibliotekininkui būtinas slaptažodis.")
+                            else:
+                                if library.user_manager.register_librarian(name, password):
+                                    st.success(f"Administratorius '{name}' sėkmingai sukurtas.")
+                                else:
+                                    st.error("Toks vartotojas jau egzistuoja.")
+
+    # --- 4. VĖLUOJANČIOS KNYGOS ---
     elif menu == "Vėluojančios knygos":
         st.header("⚠️ Vėluojančios Knygos")
         overdue = library.get_all_overdue_books()
         if overdue:
-            st.dataframe(pd.DataFrame(overdue), width='stretch')
+            # Paverčiame į DataFrame gražesniam vaizdui
+            df_overdue = pd.DataFrame(overdue)
+            # Pervadiname stulpelius
+            df_overdue = df_overdue.rename(columns={
+                'title': 'Knyga', 
+                'user': 'Skaitytojas', 
+                'due_date': 'Terminas'
+            })
+            st.dataframe(df_overdue, use_container_width=True)
         else:
             st.success("Vėluojančių knygų nėra! 🎉")
 
@@ -158,7 +342,7 @@ def reader_dashboard():
         )
         
         st.divider()
-        if st.button("Atsijungti", type="primary", width=stretch):
+        if st.button("Atsijungti", type="primary", width='stretch'):
             logout()
 
     # --- 1. KNYGŲ KATALOGAS (INTERAKTYVI LENTELĖ) ---
@@ -208,7 +392,7 @@ def reader_dashboard():
                     "Imti?",
                     help="Pažymėkite norėdami pasiimti",
                     default=False,
-                    width=small
+                    width="small"
                 ),
                 "title": "Pavadinimas",
                 "author": "Autorius",
