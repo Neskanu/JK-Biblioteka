@@ -12,6 +12,7 @@ CONTEXT:
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import plotly.express as px
 
 def render_dashboard(library):
     # --- SIDEBAR ---
@@ -372,21 +373,58 @@ def _render_books_view(library):
              st.info("Pakeitimų nerasta.")
 
 def _render_stats_view(library):
-    """Statistika."""
+    """Statistika su pyragu."""
     stats = library.get_advanced_statistics()
     st.subheader("Bendroji Statistika")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Viso Knygų", len(library.book_manager.books))
-    c2.metric("Skaitytojų", len([u for u in library.user_manager.users if u.role == 'reader']))
-    c3.metric("Vid. knygų metai", stats.get('avg_book_year', '-'))
-    c4.metric("Vėlavimų vidurkis", stats.get('avg_overdue_per_reader', '-'))
+    
+    # 1. Duomenų paruošimas diagramai
+    all_books = library.book_manager.books
+    total_copies = sum(b.total_copies for b in all_books)
+    available_copies = sum(b.available_copies for b in all_books)
+    borrowed_copies = total_copies - available_copies
+
+    # Padaliname ekraną: Skaičiai | Diagrama
+    col_metrics, col_chart = st.columns([1, 1])
+
+    with col_metrics:
+        st.write("### Skaičiai")
+        st.metric("Viso Knygų (Kopijų)", total_copies)
+        st.metric("Skaitytojų", len([u for u in library.user_manager.users if u.role == 'reader']))
+        st.metric("Paskolinta šiuo metu", borrowed_copies)
+        st.metric("Vėlavimų vidurkis", stats.get('avg_overdue_per_reader', '-'))
+
+    with col_chart:
+        # 2. Braižome Pyragą (Donut Chart)
+        if total_copies > 0:
+            chart_data = pd.DataFrame({
+                "Būsena": ["Laisva", "Paskolinta"],
+                "Kiekis": [available_copies, borrowed_copies]
+            })
+            
+            # Naudojame Plotly Express
+            fig = px.pie(
+                chart_data, 
+                values='Kiekis', 
+                names='Būsena', 
+                title='Fondo užimtumas',
+                color='Būsena',
+                color_discrete_map={'Laisva':'#2ecc71', 'Paskolinta':'#e74c3c'}, # Žalia ir Raudona
+                hole=0.4 # Padaro "spurgą"
+            )
+            # Paslepiame legendą, jei norime švaresnio vaizdo, arba paliekame
+            fig.update_layout(showlegend=True)
+            st.plotly_chart(fig, width='stretch')
+        else:
+            st.info("Nėra duomenų diagramai.")
+
     st.divider()
     
     col_left, col_right = st.columns(2)
     with col_left:
-        st.write("📊 **Žanrai**")
-        st.write(f"Fonde: **{stats.get('inventory_top_genre', '-')}**")
-        st.write(f"Skaitomiausias: **{stats.get('borrowed_top_genre', '-')}**")
+        st.write("📊 **Populiariausi Žanrai**")
+        st.write(f"Fonde daugiausia: **{stats.get('inventory_top_genre', '-')}**")
+        st.write(f"Skaitytojai renkasi: **{stats.get('borrowed_top_genre', '-')}**")
+        st.write(f"Vid. knygų metai: **{stats.get('avg_book_year', '-')}**")
     with col_right:
         st.write("⚠️ **Vėlavimai**")
         overdue = library.get_all_overdue_books()
