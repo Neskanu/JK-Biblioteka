@@ -35,13 +35,19 @@
     },
     {
         "id": "c9e30028-9dc4-4197-bbf2-c53201037c1b",
-        "username": "Aaa",
+        "username": "Aaab",
         "role": "librarian",
         "password": "aaaqqq"
     },
     {
         "id": "RO5124",
         "username": "Jonas",
+        "role": "reader",
+        "active_loans": []
+    },
+    {
+        "id": "MG1234",
+        "username": "Melas Gibsonas",
         "role": "reader",
         "active_loans": []
     }

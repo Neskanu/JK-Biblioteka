@@ -4,6 +4,7 @@ PURPOSE: Rodo vartotojų sąrašą, leidžia redaguoti ir trinti.
 RELATIONSHIPS:
   - Naudoja ascii_styler lentelėms.
   - Vykdo safe_delete_user logiką iš library.py
+  - Pakeista: Kortelės keitimas dabar reikalauja rankinio įvedimo.
 """
 
 from src.ui.common import pause, clear_screen, get_int_input
@@ -13,6 +14,7 @@ def manage_users_loop(library):
     """Pagrindinis ciklas vartotojų peržiūrai ir redagavimui."""
     while True:
         clear_screen()
+        # Gauname vartotojus tiesiai iš repo (per facade alias)
         users = library.user_manager.users
         
         if not users:
@@ -56,16 +58,23 @@ def _edit_reader(library, user):
         print_header(f"REDAGUOJAMAS: {user.username}")
         print(f"Kortelės ID: {user.id}")
         print("-" * 30)
-        print("1. Išduoti naują kortelę (Regeneruoti ID)")
+        print("1. Išduoti naują kortelę (Pamesta/Sugadinta)")
         print("2. Ištrinti skaitytoją")
         print("0. Grįžti")
         
         choice = input("\nPasirinkimas: ")
         
         if choice == '1':
-            old_id = user.id
-            new_id = library.user_manager.regenerate_reader_id(user)
-            print(f"\nSėkmingai! Senas ID: {old_id} -> Naujas ID: {new_id}")
+            print("\n--- NAUJOS KORTELĖS IŠDAVIMAS ---")
+            print("Formatas: XX1111 (pvz., AB9999)")
+            new_id = input("Įveskite naują kortelės kodą: ").strip().upper()
+            
+            if new_id:
+                # Svarbu: dabar perduodame ir naują ID
+                success, msg = library.user_manager.regenerate_reader_id(user, new_id)
+                print(f"\n>> {msg}")
+            else:
+                print("Atšaukta.")
             pause()
             
         elif choice == '2':
@@ -87,15 +96,21 @@ def _edit_librarian(library, user):
         choice = input("\nPasirinkimas: ")
         
         if choice == '1':
-            new_name = input("Naujas vartotojo vardas: ")
-            library.user_manager.update_librarian(user, new_username=new_name)
-            print("Vardas atnaujintas.")
+            new_name = input("Naujas vartotojo vardas: ").strip()
+            if new_name:
+                # Tiesioginis atnaujinimas ir išsaugojimas
+                user.username = new_name
+                library.user_manager.save()
+                print("Vardas atnaujintas.")
             pause()
             
         elif choice == '2':
-            new_pwd = input("Naujas slaptažodis: ")
-            library.user_manager.update_librarian(user, new_password=new_pwd)
-            print("Slaptažodis atnaujintas.")
+            new_pwd = input("Naujas slaptažodis: ").strip()
+            if new_pwd:
+                # Tiesioginis atnaujinimas ir išsaugojimas
+                user.password = new_pwd
+                library.user_manager.save()
+                print("Slaptažodis atnaujintas.")
             pause()
             
         elif choice == '3':
@@ -109,18 +124,18 @@ def _confirm_delete(library, user):
     confirm = input(f"Ar tikrai ištrinti vartotoją '{user.username}'? (t/n): ")
     if confirm.lower() == 't':
         success, response = library.safe_delete_user(user)
+        
         if success:
-            print(f"\n{response}")
+            print(f"\n[Sėkmė] {response}")
             pause()
             return True
         else:
-            print("\nKLAIDA: Negalima ištrinti.")
+            print(f"\n[Klaida] {response}")
+            # Jei response yra sąrašas (knygų pavadinimai), atvaizduojame jį gražiai
             if isinstance(response, list):
                 print("Vartotojas turi negrąžintų knygų:")
                 for title in response:
                     print(f"- {title}")
-            else:
-                print(response)
             pause()
             return False
     return False

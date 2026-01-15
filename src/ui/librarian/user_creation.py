@@ -14,19 +14,39 @@ from src.ui.ascii_styler import print_header
 def register_reader(library):
     """Tvarko skaitytojo registracijos procesą."""
     print_header("Skaitytojo Registracija")
-    name = input("Vartotojo vardas: ")
-    if not name:
+    
+    # 1. Gauti vartotojo vardą
+    while True:
+        name = input("Vartotojo vardas: ").strip()
+        if name:
+            break
         print("Vardas negali būti tuščias.")
-        pause()
-        return
 
-    new_user = library.user_manager.register_reader(name)
-    if new_user:
-        print(f"Skaitytojas sukurtas! ID: [ {new_user.id} ]")
-        print("Būtinai perduokite šį ID skaitytojui.")
-    else:
-        print("Klaida: Nepavyko sukurti (galbūt vardas užimtas).")
-    pause()
+    print("Įveskite kortelės kodą (Formatas: XX1111)")
+    print("Arba palikite tuščią, kad atšauktumėte.")
+
+    # 2. Pridėti kortelę ir registruoti
+    while True:
+        card_id = input("Kortelės ID: ").strip().upper()
+        
+        # Leidžiame atšaukti, jei bibliotekininkas neturi kortelės
+        if not card_id:
+            print("Registracija atšaukta.")
+            pause()
+            return
+
+        # UI surenka abu parametrus ir siunčia į servisą
+        success, msg = library.user_manager.register_reader(name, card_id)
+
+        print(f"\n>> {msg}") # Išspausdiname rezultatą iš serviso
+        
+        if success:
+            # Jei pavyko - laukiame paspaudimo ir išeiname iš funkcijos
+            pause()
+            break 
+        else:
+            # Jei nepavyko (pvz. blogas formatas), ciklas kartojasi
+            pass
 
 def register_librarian(library):
     """Tvarko bibliotekininko registracijos procesą."""

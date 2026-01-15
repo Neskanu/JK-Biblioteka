@@ -20,6 +20,27 @@ class AuthService:
         """
         self.repo = user_repository
 
+    def _validate_card_format(self, card_id):
+        """
+        Pagalbinis metodas: Patikrina, ar kodas atitinka formatą XX1111.
+        Grąžina: (bool, error_message)
+        """
+        card_id = card_id.upper()
+        
+        # 1. Ilgio patikra
+        if len(card_id) != 6:
+            return False, "Kodas turi būti lygiai 6 simbolių ilgio."
+            
+        # 2. Pirmų dviejų simbolių patikra (turi būti raidės)
+        if not card_id[:2].isalpha():
+            return False, "Pirmieji du simboliai turi būti raidės (pvz. AB)."
+            
+        # 3. Paskutinių keturių simbolių patikra (turi būti skaičiai)
+        if not card_id[2:].isdigit():
+            return False, "Paskutiniai 4 simboliai turi būti skaičiai (pvz. 1234)."
+            
+        return True, ""
+    
     def authenticate_librarian(self, username, password):
         """
         Tikrina, ar vartotojas egzistuoja ir ar tinka slaptažodis.
@@ -50,30 +71,49 @@ class AuthService:
         self.repo.add(new_admin)
         return True
 
-    def register_reader(self, username):
+    def register_reader(self, username, card_id):
         """
-        Registruoja skaitytoją.
-        Skaitytojai neturi slaptažodžio, bet turi unikalų Kortelės ID.
+        Registruoja skaitytoją su bibliotekininko įvestu ID.
         """
-        # Generuojame ID tol, kol randame unikalų
-        while True:
-            new_id = generate_card_id()
-            if not self.repo.get_by_id(new_id): # Jei ID laisvas - nutraukiame ciklą
-                break
-        
-        new_reader = Reader(username, role='reader', user_id=new_id)
+        # Normalizuojame į didžiąsias raides
+        card_id = card_id.strip().upper()
+
+        # 1. Formato validacija
+        is_valid, error_msg = self._validate_card_format(card_id)
+        if not is_valid:
+            return False, error_msg
+
+        # 2. Unikalumo tikrinimas
+        if self.repo.get_by_id(card_id):
+            return False, f"Kortelė {card_id} jau užregistruota sistemoje."
+
+        # 3. Kūrimas
+        new_reader = Reader(username, role="reader", id=card_id)
         self.repo.add(new_reader)
-        return new_reader
         
-    def regenerate_card_id(self, reader):
-        """Suteikia skaitytojui naują ID (pamestos kortelės atvejis)."""
-        while True:
-            new_id = generate_card_id()
-            if not self.repo.get_by_id(new_id):
-                break
+        return True, f"Skaitytojas '{username}' sukurtas. Kortelė: {card_id}"
+    
+    def regenerate_card_id(self, reader, new_card_id):
+        """
+        Priskiria naują kortelę esamam skaitytojui (RANKINIS ĮVEDIMAS).
+        Sena kortelė (reader.id) bus pakeista nauja.
+        """
+        new_card_id = new_card_id.strip().upper()
+
+        # 1. Formato validacija
+        is_valid, error_msg = self._validate_card_format(new_card_id)
+        if not is_valid:
+            return False, error_msg
+
+        # 2. Unikalumo tikrinimas
+        # Svarbu: tikriname, ar kortelė neužimta (išskyrus atvejį, jei tai ta pati kortelė)
+        existing_user = self.repo.get_by_id(new_card_id)
+        if existing_user and existing_user.id != reader.id:
+            return False, f"Klaida: Kortelė {new_card_id} jau priklauso kitam vartotojui."
         
-        # Atnaujiname objektą
-        reader.id = new_id
-        # Išsaugome pakeitimus į failą per repo
+        # 3. Atnaujinimas
+        old_id = reader.id
+        reader.id = new_card_id
         self.repo.save()
-        return new_id
+        
+        return True, f"Kortelė pakeista. {old_id} -> {new_card_id}"
