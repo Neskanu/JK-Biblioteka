@@ -60,7 +60,7 @@ class Library:
         
         # Trumpos Lambda funkcijos paieškai (filtravimui)
         # Jos leidžia senam kodui kviesti sudėtingas paieškas per repozitoriją
-        self.book_repository.get_candidates_by_author = lambda a: [b for b in self.book_repository.books if a.lower() in b.author.lower() and b.available_copies == b.total_copies]
+        self.book_repository.get_candidates_by_author = lambda a: [b for b in self.book_repository.books if a.lower() in b.author.lower() and b.available_copies == b.total_copies] # Ši funkcija ieško autorių, kurių vardas/pavardė atitinka 'b'
         self.book_repository.get_candidates_by_genre = lambda g: [b for b in self.book_repository.books if g.lower() == b.genre.lower() and b.available_copies == b.total_copies]
         self.book_repository.get_candidates_by_year = lambda y: [b for b in self.book_repository.books if int(b.year) < y and b.available_copies == b.total_copies]
         
@@ -115,3 +115,20 @@ class Library:
         if self.user_repository.remove(user):
             return True, "Vartotojas sėkmingai pašalintas."
         return False, "Vartotojas nerastas."
+    
+    def safe_delete_book(self, book):
+        """Verslo logika: trina knygą tik jei ji saugi trinti.
+        Bando saugiai ištrinti knygą.
+        Grąžina (bool, message).
+        """
+        # Tikriname ar knyga yra paskolinta
+        # Naudojame int(), kad užtikrintume, jog lyginame skaičius, o ne tekstą
+        if int(book.available_copies) < int(book.total_copies):
+            return False, "Negalima ištrinti: knyga šiuo metu yra paskolinta."
+        
+        self.book_repository.remove(book.id)
+        if book in self.book_manager.books:
+            self.book_manager.books.remove(book)
+        self.book_repository.save()
+        
+        return True, f"Knyga '{book.title}' sėkmingai ištrinta."
