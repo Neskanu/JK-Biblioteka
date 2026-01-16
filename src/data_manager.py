@@ -1,5 +1,38 @@
+"""
+FAILAS: src/data_manager.py
+PASKIRTIS: Tvarko kelių nustatymą iki duomenų failų (JSON), veikiant tiek kodo, tiek .exe režimu.
+RYŠIAI:
+  - Naudojamas book_manager.py ir user_manager.py duomenų užkrovimui.
+  - Importuoja sys ir os bibliotekas sistemos keliams nustatyti.
+KONTEKSTAS:
+  - Perrašytas, kad išspręstų "Frozen Path" problemą naudojant PyInstaller.
+  - Užtikrina duomenų patvarumą (persistence) sukompiliuotoje versijoje.
+"""
+
+import sys
 import json
 import os
+
+def get_base_path():
+    """
+    Nustato bazinį projekto kelią.
+    
+    Logika:
+      - Jei programa sukompiliuota (sys.frozen), bazinis kelias yra ten, kur yra .exe failas.
+      - Jei programa leidžiama kaip kodas, bazinis kelias yra projekto šaknis (dviem lygiais aukščiau).
+    """
+    if getattr(sys, 'frozen', False):
+        # Sukompiliuota programa (.exe)
+        # sys.executable nurodo patį .exe failą
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Standartinis Python skriptas
+        # __file__ yra src/data_manager.py -> dirname = src/ -> dirname = root
+        current_file = os.path.abspath(__file__)
+        src_dir = os.path.dirname(current_file)
+        base_path = os.path.dirname(src_dir)
+    
+    return base_path
 
 def get_data_file_path(filename):
     """
