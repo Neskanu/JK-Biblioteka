@@ -27,7 +27,7 @@ def render_dashboard():
 
 def _render_catalog(library, user):
     st.header("🔎 Knygų Katalogas")
-    books = library.book_manager.get_all_books()
+    books = library.book_repository.get_all()
     
     if not books:
         st.warning("Tuščia.")

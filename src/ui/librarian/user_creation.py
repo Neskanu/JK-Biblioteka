@@ -36,7 +36,7 @@ def register_reader(library):
             return
 
         # UI surenka abu parametrus ir siunčia į servisą
-        success, msg = library.user_manager.register_reader(name, card_id)
+        success, msg = library.auth_service.register_reader(name, card_id)
 
         print(f"\n>> {msg}") # Išspausdiname rezultatą iš serviso
         
@@ -59,7 +59,7 @@ def register_librarian(library):
         pause()
         return
 
-    if library.user_manager.register_librarian(name, pwd):
+    if library.auth_service.register_librarian(name, pwd):
         print("Bibliotekininkas sėkmingai užregistruotas.")
     else:
         print("Vartotojas jau egzistuoja.")

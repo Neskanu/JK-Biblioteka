@@ -11,10 +11,10 @@ library = Library()
 
 def bootstrap_system():
     """Užtikrina, kad sistemoje yra bent vienas administratorius."""
-    admins = [u for u in library.user_manager.users if u.role == 'librarian']
+    admins = [u for u in library.user_repository.get_all() if u.role == 'librarian']
     if not admins:
         print("Pirmas paleidimas: Kuriamas 'admin'.")
-        library.user_manager.register_librarian("admin", "admin")
+        library.auth_service.register_librarian("admin", "admin")
         print("Prisijungimas -> Vartotojas: admin, Slaptažodis: admin")
 
 def main():
@@ -37,7 +37,7 @@ def main():
             print_header("BIBLIOTEKININKO PRISIJUNGIMAS")
             username = input("Vartotojas: ")
             password = input("Slaptažodis: ")
-            user = library.user_manager.authenticate_librarian(username, password)
+            user = library.auth_service.authenticate_librarian(username, password)
             
             if user:
                 # Kviečiame per naują importo vardą
@@ -50,7 +50,7 @@ def main():
             clear_screen()
             print_header("SKAITYTOJO PRISIJUNGIMAS")
             card_id = input("Įveskite Kortelės ID: ")
-            user = library.user_manager.get_by_id(card_id)
+            user = library.user_repository.find_by_id(card_id)
             
             if user and user.role == 'reader':
                 # Perduodame valdymą į reader modulį

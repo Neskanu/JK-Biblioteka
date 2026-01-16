@@ -15,7 +15,7 @@ def manage_users_loop(library):
     while True:
         clear_screen()
         # Gauname vartotojus tiesiai iš repo (per facade alias)
-        users = library.user_manager.users
+        users = library.user_repository.get_all()
         
         if not users:
             print_header("VARTOTOJŲ SĄRAŠAS")
@@ -71,7 +71,7 @@ def _edit_reader(library, user):
             
             if new_id:
                 # Svarbu: dabar perduodame ir naują ID
-                success, msg = library.user_manager.regenerate_reader_id(user, new_id)
+                success, msg = library.auth_service.regenerate_card_id(user, new_id)
                 print(f"\n>> {msg}")
             else:
                 print("Atšaukta.")
@@ -100,7 +100,7 @@ def _edit_librarian(library, user):
             if new_name:
                 # Tiesioginis atnaujinimas ir išsaugojimas
                 user.username = new_name
-                library.user_manager.save()
+                library.user_repository.save()
                 print("Vardas atnaujintas.")
             pause()
             
@@ -109,7 +109,7 @@ def _edit_librarian(library, user):
             if new_pwd:
                 # Tiesioginis atnaujinimas ir išsaugojimas
                 user.password = new_pwd
-                library.user_manager.save()
+                library.user_repository.save()
                 print("Slaptažodis atnaujintas.")
             pause()
             

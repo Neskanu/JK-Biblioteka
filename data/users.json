@@ -60,5 +60,11 @@
         "username": "Melas Gibsonas",
         "role": "reader",
         "active_loans": []
+    },
+    {
+        "id": "JS1111",
+        "username": "Jonas Smitas",
+        "role": "reader",
+        "active_loans": []
     }
 ]

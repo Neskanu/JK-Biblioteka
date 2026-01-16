@@ -9,6 +9,7 @@ CONTEXT:
 """
 
 import os
+from src import data_manager
 from src.models import Book
 from src.data_manager import load_data, save_data, get_data_file_path
 from src.config import BOOKS_FILENAME, BACKUP_FILENAME
@@ -18,18 +19,34 @@ class BookRepository:
         # Nustatome kelius iki pagrindinio failo ir backup failo
         self.filepath = get_data_file_path(BOOKS_FILENAME)
         self.backup_path = get_data_file_path(BACKUP_FILENAME)
+        self.books = []
+        self.filename = BOOKS_FILENAME
         self._load()
 
     def _load(self):
-        """Užkrauna knygas iš JSON į atmintį (Book objektų sąrašą)."""
-        data = load_data(self.filepath)
-        # Kiekvieną įrašą paverčiame Book objektu
-        self.books = [Book.from_dict(item) for item in data]
+        """Vidinė funkcija duomenų užkrovimui iš JSON."""
+        # 1. Gauname PILNĄ kelią iki failo (pvz., D:\...\data\books.json)
+        full_path = data_manager.get_data_file_path(self.filename)
+        
+        # 2. Užkrauname naudodami pilną kelią
+        data = data_manager.load_data(full_path)
+        
+        # 3. Konvertuojame
+        self.books = [Book(**item) for item in data]
 
     def save(self):
-        """Įrašo dabartinę knygų būklę į failą."""
-        data = [book.to_dict() for book in self.books]
-        save_data(self.filepath, data)
+        """
+        Išsaugo visus pakeitimus į JSON failą.
+        SVARBU: Būtina naudoti get_data_file_path, kitaip failas atsiras ne ten!
+        """
+        # 1. Konvertuojame objektus į žodynus
+        data = [book.__dict__ for book in self.books]
+        
+        # 2. Gauname teisingą kelią (į 'data' aplanką)
+        full_path = data_manager.get_data_file_path(self.filename)
+        
+        # 3. Įrašome
+        data_manager.save_data(full_path, data)
 
     # --- Duomenų gavimo metodai ---
 
@@ -37,6 +54,12 @@ class BookRepository:
         return self.books
 
     def get_by_id(self, book_id):
+        """
+        Suranda knygą pagal ID.
+        Svarbu: Lygina pavertus į string, kad išvengtume int vs str problemų.
+        """
+        search_id = str(book_id).strip()
+
         for book in self.books:
             if book.id == book_id:
                 return book
@@ -66,10 +89,21 @@ class BookRepository:
         self.books.append(book)
         self.save()
 
-    def remove(self, book):
-        if book in self.books:
-            self.books.remove(book)
+    def remove(self, book_id):
+        """Šalina vieną knygą ir IŠKART saugo (standartinis trynimas)."""
+        if self.remove_without_save(book_id):
             self.save()
+            return True
+        return False
+
+    def remove_without_save(self, book_id):
+        """
+        Pagalbinis metodas: Tik pašalina iš atminties.
+        Naudojamas masiniam trynimui, kad nereikėtų 100 kartų atidarinėti failo.
+        """
+        book = self.get_by_id(book_id)
+        if book:
+            self.books.remove(book)
             return True
         return False
 

@@ -33,7 +33,7 @@ def process_borrowing(library, user, book):
     confirm = input(f"Ar tikrai norite pasiskolinti '{book.title}'? (t/n): ")
     
     if confirm.lower() == 't':
-        success, message = library.borrow_book(user.id, book.id)
+        success, message = library.lending_service.borrow_book(user, book)
         
         if success:
             print(f"\nSĖKMINGA! {message}")

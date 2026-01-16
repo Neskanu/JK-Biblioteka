@@ -19,7 +19,7 @@ def login_page():
             submit = st.form_submit_button("Prisijungti")
             
             if submit:
-                user = library.user_manager.get_by_id(card_id)
+                user = library.user_repository.get_by_id(card_id)
                 if user and user.role == 'reader':
                     st.session_state.user = user
                     st.rerun()
@@ -34,7 +34,7 @@ def login_page():
             submit = st.form_submit_button("Prisijungti")
             
             if submit:
-                user = library.user_manager.authenticate_librarian(username, password)
+                user = library.auth_service.authenticate_librarian(username, password)
                 if user:
                     st.session_state.user = user
                     st.rerun()
