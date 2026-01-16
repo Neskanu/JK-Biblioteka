@@ -48,11 +48,11 @@ class Library:
         # Naujas 'user_repository' jų neturi (nes jis tik saugo duomenis).
         # Todėl mes priskiriame šiuos metodus iš 'auth_service' prie 'user_manager' nuorodos.
         # TAIP UI KODAS NESULŪŠ, nors struktūra pasikeitė.
-        self.user_repository.authenticate_librarian = self.auth_service.authenticate_librarian
-        self.user_repository.register_librarian = self.auth_service.register_librarian
-        self.user_repository.register_reader = self.auth_service.register_reader
-        self.user_repository.regenerate_reader_id = self.auth_service.regenerate_card_id
-        self.user_repository.delete_user_from_db = self.user_repository.remove 
+        # self.user_repository.authenticate_librarian = self.auth_service.authenticate_librarian
+        # self.user_repository.register_librarian = self.auth_service.register_librarian
+        # self.user_repository.register_reader = self.auth_service.register_reader
+        # self.user_repository.regenerate_reader_id = self.auth_service.regenerate_card_id
+        # self.user_repository.delete_user_from_db = self.user_repository.remove 
 
         # Tas pats su knygų valdymu - prijungiame metodus iš InventoryService
         self.book_repository.add_book = self.inventory_service.add_book
