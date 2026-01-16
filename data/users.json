@@ -11,28 +11,8 @@
         "role": "reader",
         "active_loans": [
             {
-                "book_id": "550e8400-e29b-41d4-a716-446655440040",
-                "title": "Nematomas žmogus",
-                "due_date": "2026-01-29"
-            },
-            {
-                "book_id": "550e8400-e29b-41d4-a716-446655440016",
-                "title": "Puikybė ir prietarai",
-                "due_date": "2026-01-29"
-            },
-            {
-                "book_id": "550e8400-e29b-41d4-a716-446655440017",
-                "title": "Nusikaltimas ir bausmė",
-                "due_date": "2026-01-29"
-            },
-            {
-                "book_id": "550e8400-e29b-41d4-a716-446655440027",
-                "title": "Ana Karenina",
-                "due_date": "2026-01-29"
-            },
-            {
-                "book_id": "550e8400-e29b-41d4-a716-446655440010",
-                "title": "Alchemikas",
+                "book_id": "550e8400-e29b-41d4-a716-446655440001",
+                "title": "1984",
                 "due_date": "2026-01-30"
             }
         ]

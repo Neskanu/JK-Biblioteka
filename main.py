@@ -50,7 +50,7 @@ def main():
             clear_screen()
             print_header("SKAITYTOJO PRISIJUNGIMAS")
             card_id = input("Įveskite Kortelės ID: ")
-            user = library.user_repository.find_by_id(card_id)
+            user = library.user_repository.get_by_id(card_id)
             
             if user and user.role == 'reader':
                 # Perduodame valdymą į reader modulį

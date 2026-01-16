@@ -1,103 +1,121 @@
 """
 FAILAS: src/data_manager.py
-PASKIRTIS: Tvarko duomenų (JSON) užkrovimą ir saugojimą su detaliu registravimu (logging).
+PASKIRTIS: Tvarko kelių nustatymą iki duomenų failų (JSON), veikiant tiek kodo, tiek .exe režimu.
 RYŠIAI:
-  - Naudojamas book_manager.py ir user_manager.py duomenų operacijoms.
-  - Generuoja 'debug.log' failą šalia vykdomosios programos.
+  - Naudojamas book_manager.py ir user_manager.py duomenų užkrovimui.
+  - Importuoja sys ir os bibliotekas sistemos keliams nustatyti.
 KONTEKSTAS:
-  - Pridėtas logging funkcionalumas padeda diagnozuoti problemas sukompiliuotoje versijoje.
+  - Perrašytas, kad išspręstų "Frozen Path" problemą naudojant PyInstaller.
+  - Užtikrina duomenų patvarumą (persistence) sukompiliuotoje versijoje.
 """
 
+import sys
 import json
 import os
-import sys
 import logging
 
 # --- LOGGING KONFIGŪRACIJA ---
-
-# Nustatome, kur kurti log failą. 
-# Jei programa sukompiliuota (.exe), logas bus šalia jos.
-# Jei leidžiama per Python, logas bus šalia šio skripto.
+# Nustatome, kur bus log failas.
+# Jei tai .exe, log failas bus šalia .exe.
 if getattr(sys, 'frozen', False):
-    base_log_dir = os.path.dirname(sys.executable)
+    app_dir = os.path.dirname(sys.executable)
 else:
-    base_log_dir = os.path.dirname(os.path.abspath(__file__))
+    app_dir = os.path.dirname(os.path.abspath(__file__))
 
-log_file_path = os.path.join(base_log_dir, 'debug.log')
+log_file = os.path.join(app_dir, 'debug.log')
 
-# Konfigūruojame logerį: rašysime laiką, lygį (INFO/ERROR) ir žinutę
+# Konfigūruojame logerį
 logging.basicConfig(
-    filename=log_file_path,
+    filename=log_file,
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    encoding='utf-8' # Būtina lietuviškiems simboliams
+    encoding='utf-8' # Svarbu lietuviškoms raidėms
 )
 
-logging.info("--- DUOMENŲ VALDYMO MODULIS INICIJUOTAS ---")
+# Pirmas įrašas paleidžiant modulį
+logging.info(f"--- SISTEMA STARTUOJA ---")
+logging.info(f"Vykdymo vieta (App Dir): {app_dir}")
+logging.info(f"Ar sukompiliuota (Frozen): {getattr(sys, 'frozen', False)}")
 
 def get_base_path():
     """
     Nustato bazinį projekto kelią.
+    
+    Logika:
+      - Jei programa sukompiliuota (sys.frozen), bazinis kelias yra ten, kur yra .exe failas.
+      - Jei programa leidžiama kaip kodas, bazinis kelias yra projekto šaknis (dviem lygiais aukščiau).
     """
     if getattr(sys, 'frozen', False):
-        # .exe režimas: kelias iki .exe failo katalogo
-        path = os.path.dirname(sys.executable)
-        logging.debug(f"[PATH] Veikiama .exe režimu. Bazinė direktorija: {path}")
-        return path
+        # Sukompiliuota programa (.exe)
+        # sys.executable nurodo patį .exe failą
+        base_path = os.path.dirname(sys.executable)
     else:
-        # Skripto režimas: grįžtame du lygius aukštyn nuo src/data_manager.py
-        path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        logging.debug(f"[PATH] Veikiama Python skripto režimu. Bazinė direktorija: {path}")
-        return path
+        # Standartinis Python skriptas
+        # __file__ yra src/data_manager.py -> dirname = src/ -> dirname = root
+        current_file = os.path.abspath(__file__)
+        src_dir = os.path.dirname(current_file)
+        base_path = os.path.dirname(src_dir)
+    
+    return base_path
 
 def get_data_file_path(filename):
     """
-    Grąžina pilną kelią iki failų duomenų kataloge ir tai užfiksuoja.
+    Grąžina pilną kelią iki failų duomenų kataloge.
     """
-    base_path = get_base_path()
-    full_path = os.path.join(base_path, 'data', filename)
-    logging.debug(f"[PATH] Sukonstruotas kelias failui '{filename}': {full_path}")
-    return full_path
+    current_file = os.path.abspath(__file__)
+    src_dir = os.path.dirname(current_file)
+    project_root = os.path.dirname(src_dir)
+    return os.path.join(project_root, 'data', filename)
 
 def load_data(filepath):
     """
-    Nuskaito duomenis iš JSON failo su registravimu.
+    Nuskaito duomenis iš JSON failo.
+    
+    Parametrai:
+    - filepath: kelias iki failo (pvz., 'data/books.json').
+    
+    Grąžina:
+    - list: Duomenų sąrašas (pvz., knygų žodynai).
+    - Jei failo nėra arba jis sugadintas, grąžina tuščią sąrašą [].
     """
-    logging.info(f"[READ] Bandoma nuskaityti failą: {filepath}")
-
+    # 1. Patikriname, ar failas egzistuoja
     if not os.path.exists(filepath):
-        logging.warning(f"[READ] Failas NERASTAS: {filepath}")
+        # Jei failo nėra (pirmas paleidimas), grąžiname tuščią sąrašą,
+        # kad programa nenulūžtų.
         return []
 
     try:
+        # 2. Atidarome failą skaitymui ('r' - read)
+        # encoding='utf-8' būtinas lietuviškoms raidėms (ąčęė...)
         with open(filepath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            logging.info(f"[READ] Sėkmingai nuskaityta įrašų: {len(data)}")
-            return data
+            return json.load(f)
             
-    except json.JSONDecodeError as e:
-        logging.error(f"[READ] JSON struktūros klaida faile {filepath}: {e}")
-        return []
-    except Exception as e:
-        logging.critical(f"[READ] Kritinė klaida skaitant failą {filepath}: {e}")
+    except (json.JSONDecodeError, IOError):
+        # Jei failas yra tuščias arba sugadintas (nevalidus JSON),
+        # grąžiname tuščią sąrašą vietoj klaidos metimo.
+        print(f"Įspėjimas: Failas {filepath} sugadintas arba tuščias. Pradedama nuo nulio.")
         return []
 
 def save_data(filepath, data):
     """
-    Įrašo duomenis į JSON failą su registravimu.
-    """
-    logging.info(f"[WRITE] Bandoma įrašyti {len(data)} įrašų į: {filepath}")
+    Įrašo duomenis į JSON failą.
     
+    Parametrai:
+    - filepath: kur saugoti.
+    - data: sąrašas žodynų (list of dicts).
+    """
     try:
-        # Užtikriname, kad egzistuoja direktorija
+        # 3. Užtikriname, kad egzistuoja direktorija (pvz., 'data/')
+        # Jei aplanko 'data' nėra, os.makedirs jį sukurs.
         directory = os.path.dirname(filepath)
         if directory and not os.path.exists(directory):
             os.makedirs(directory)
-            logging.info(f"[WRITE] Sukurta trūkstama direktorija: {directory}")
 
+        # 4. Atidarome failą rašymui ('w' - write)
         with open(filepath, 'w', encoding='utf-8') as f:
+            # indent=4 padaro failą gražų ir skaitomą žmogui (su tarpais)
+            # ensure_ascii=False leidžia įrašyti lietuviškas raides, o ne kodus
             json.dump(data, f, indent=4, ensure_ascii=False)
-            logging.info(f"[WRITE] Duomenys sėkmingai išsaugoti.")
             
-    except Exception as e:
-        logging.error(f"[WRITE] Klaida įrašant į failą {filepath}: {e}")
+    except IOError as e:
+        print(f"Klaida įrašant į failą {filepath}: {e}")

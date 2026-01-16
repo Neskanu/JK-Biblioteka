@@ -16,8 +16,8 @@ def run_menu(library, user):
         clear_screen()
         # Meniu piešiame naudodami draw_ascii_menu
         menu_options = [
-            ("1", "Knygų katalogas (Paieška, Naujienos)"),
-            ("2", "Mano knygos ir Grąžinimas"),
+            ("1", "Knygų katalogas ir paieška"),
+            ("2", "Mano knygos ir grąžinimas"),
             ("0", "Atsijungti")
         ]
         draw_ascii_menu("SKAITYTOJO MENIU", menu_options)
