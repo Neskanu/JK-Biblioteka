@@ -27,12 +27,14 @@ class BookRepository:
         """Vidinė funkcija duomenų užkrovimui iš JSON."""
         # 1. Gauname PILNĄ kelią iki failo (pvz., D:\...\data\books.json)
         full_path = data_manager.get_data_file_path(self.filename)
+        print(f"DEBUG: [BookRepository] Skaitoma iš: {full_path}")
         
         # 2. Užkrauname naudodami pilną kelią
         data = data_manager.load_data(full_path)
         
         # 3. Konvertuojame
         self.books = [Book(**item) for item in data]
+        print(f"DEBUG: [BookRepository] Užkrauta knygų: {len(self.books)}")
 
     def save(self):
         """

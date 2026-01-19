@@ -4,18 +4,9 @@
         "author": "George Orwell",
         "year": 1949,
         "genre": "Distopija",
-        "total_copies": 5,
-        "available_copies": 4,
+        "total_copies": 6,
+        "available_copies": 5,
         "id": "550e8400-e29b-41d4-a716-446655440001"
-    },
-    {
-        "title": "Altorių šešėly",
-        "author": "Vincas Mykolaitis-Putinas",
-        "year": 1933,
-        "genre": "Romanas",
-        "total_copies": 3,
-        "available_copies": 3,
-        "id": "550e8400-e29b-41d4-a716-446655440002"
     },
     {
         "title": "Didysis Getsbis",
@@ -23,7 +14,7 @@
         "year": 1925,
         "genre": "Klasika",
         "total_copies": 2,
-        "available_copies": 2,
+        "available_copies": 1,
         "id": "550e8400-e29b-41d4-a716-446655440003"
     },
     {
@@ -36,21 +27,12 @@
         "id": "550e8400-e29b-41d4-a716-446655440004"
     },
     {
-        "title": "Balta drobulė",
-        "author": "Antanas Škėma",
-        "year": 1958,
-        "genre": "Modernizmas",
-        "total_copies": 1,
-        "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440005"
-    },
-    {
         "title": "Žiedų valdovas: Žiedo brolija",
         "author": "J.R.R. Tolkien",
         "year": 1954,
         "genre": "Fantastika",
         "total_copies": 4,
-        "available_copies": 4,
+        "available_copies": 3,
         "id": "550e8400-e29b-41d4-a716-446655440006"
     },
     {
@@ -59,7 +41,7 @@
         "year": 2006,
         "genre": "Publicistika",
         "total_copies": 2,
-        "available_copies": 2,
+        "available_copies": 1,
         "id": "550e8400-e29b-41d4-a716-446655440007"
     },
     {
@@ -72,24 +54,6 @@
         "id": "550e8400-e29b-41d4-a716-446655440008"
     },
     {
-        "title": "Mažasis princas",
-        "author": "Antoine de Saint-Exupéry",
-        "year": 1943,
-        "genre": "Pasaka",
-        "total_copies": 5,
-        "available_copies": 5,
-        "id": "550e8400-e29b-41d4-a716-446655440009"
-    },
-    {
-        "title": "Alchemikas",
-        "author": "Paulo Coelho",
-        "year": 1988,
-        "genre": "Romanas",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440010"
-    },
-    {
         "title": "Da Vinčio kodas",
         "author": "Dan Brown",
         "year": 2003,
@@ -97,78 +61,6 @@
         "total_copies": 4,
         "available_copies": 4,
         "id": "550e8400-e29b-41d4-a716-446655440011"
-    },
-    {
-        "title": "Kopa",
-        "author": "Frank Herbert",
-        "year": 1965,
-        "genre": "Mokslinė fantastika",
-        "total_copies": 3,
-        "available_copies": 3,
-        "id": "550e8400-e29b-41d4-a716-446655440012"
-    },
-    {
-        "title": "Rugiuose prie bedugnės",
-        "author": "J.D. Salinger",
-        "year": 1951,
-        "genre": "Klasika",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440013"
-    },
-    {
-        "title": "Dievų miškas",
-        "author": "Balys Sruoga",
-        "year": 1957,
-        "genre": "Memuarai",
-        "total_copies": 4,
-        "available_copies": 4,
-        "id": "550e8400-e29b-41d4-a716-446655440014"
-    },
-    {
-        "title": "Hobitas",
-        "author": "J.R.R. Tolkien",
-        "year": 1937,
-        "genre": "Fantastika",
-        "total_copies": 5,
-        "available_copies": 5,
-        "id": "550e8400-e29b-41d4-a716-446655440015"
-    },
-    {
-        "title": "Puikybė ir prietarai",
-        "author": "Jane Austen",
-        "year": 1813,
-        "genre": "Klasika",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440016"
-    },
-    {
-        "title": "Nusikaltimas ir bausmė",
-        "author": "Fiodoras Dostojevskis",
-        "year": 1866,
-        "genre": "Klasika",
-        "total_copies": 3,
-        "available_copies": 3,
-        "id": "550e8400-e29b-41d4-a716-446655440017"
-    },
-    {
-        "title": "Gyvulių ūkis",
-        "author": "George Orwell",
-        "year": 1945,
-        "genre": "Satyra",
-        "total_copies": 4,
-        "available_copies": 4,
-        "id": "550e8400-e29b-41d4-a716-446655440018"
-    },
-    {
-        "title": "Šimtas metų vienatvės",
-        "author": "Gabriel García Márquez",
-        "year": 1967,
-        "genre": "Magiškasis realizmas",
-        "total_copies": 1,
-        "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440019"
     },
     {
         "title": "Mergina su drakono tatuiruote",
@@ -207,60 +99,6 @@
         "id": "550e8400-e29b-41d4-a716-446655440023"
     },
     {
-        "title": "Stepių vilkas",
-        "author": "Hermann Hesse",
-        "year": 1927,
-        "genre": "Filosofinis",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440024"
-    },
-    {
-        "title": "Vėjas gluosniuose",
-        "author": "Kenneth Grahame",
-        "year": 1908,
-        "genre": "Vaikams",
-        "total_copies": 1,
-        "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440025"
-    },
-    {
-        "title": "Krikštatėvis",
-        "author": "Mario Puzo",
-        "year": 1969,
-        "genre": "Kriminalinis",
-        "total_copies": 3,
-        "available_copies": 3,
-        "id": "550e8400-e29b-41d4-a716-446655440026"
-    },
-    {
-        "title": "Ana Karenina",
-        "author": "Levas Tolstojus",
-        "year": 1877,
-        "genre": "Klasika",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440027"
-    },
-    {
-        "title": "Karas ir taika",
-        "author": "Levas Tolstojus",
-        "year": 1869,
-        "genre": "Istorinis romanas",
-        "total_copies": 1,
-        "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440028"
-    },
-    {
-        "title": "Ulisas",
-        "author": "James Joyce",
-        "year": 1922,
-        "genre": "Modernizmas",
-        "total_copies": 1,
-        "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440029"
-    },
-    {
         "title": "Tarp pilkų debesų",
         "author": "Ruta Sepetys",
         "year": 2011,
@@ -279,87 +117,6 @@
         "id": "550e8400-e29b-41d4-a716-446655440031"
     },
     {
-        "title": "Šerloko Holmso nuotykiai",
-        "author": "Arthur Conan Doyle",
-        "year": 1892,
-        "genre": "Detektyvas",
-        "total_copies": 5,
-        "available_copies": 5,
-        "id": "550e8400-e29b-41d4-a716-446655440032"
-    },
-    {
-        "title": "Frankenšteinas",
-        "author": "Mary Shelley",
-        "year": 1818,
-        "genre": "Siaubo",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440033"
-    },
-    {
-        "title": "Drakula",
-        "author": "Bram Stoker",
-        "year": 1897,
-        "genre": "Siaubo",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440034"
-    },
-    {
-        "title": "Vilniaus pokeris",
-        "author": "Ričardas Gavelis",
-        "year": 1989,
-        "genre": "Postmodernizmas",
-        "total_copies": 3,
-        "available_copies": 3,
-        "id": "550e8400-e29b-41d4-a716-446655440035"
-    },
-    {
-        "title": "Pasaulių karas",
-        "author": "H.G. Wells",
-        "year": 1898,
-        "genre": "Mokslinė fantastika",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440036"
-    },
-    {
-        "title": "Trys muškietininkai",
-        "author": "Alexandre Dumas",
-        "year": 1844,
-        "genre": "Nuotykių",
-        "total_copies": 4,
-        "available_copies": 4,
-        "id": "550e8400-e29b-41d4-a716-446655440037"
-    },
-    {
-        "title": "Sena skrybėlė",
-        "author": "Juozas Aputis",
-        "year": 1980,
-        "genre": "Novelės",
-        "total_copies": 1,
-        "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440038"
-    },
-    {
-        "title": "Fahrenheit 451",
-        "author": "Ray Bradbury",
-        "year": 1953,
-        "genre": "Distopija",
-        "total_copies": 3,
-        "available_copies": 3,
-        "id": "550e8400-e29b-41d4-a716-446655440039"
-    },
-    {
-        "title": "Nematomas žmogus",
-        "author": "H.G. Wells",
-        "year": 1897,
-        "genre": "Mokslinė fantastika",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440040"
-    },
-    {
         "title": "Vienuolika minučių",
         "author": "Paulo Coelho",
         "year": 2003,
@@ -369,84 +126,12 @@
         "id": "550e8400-e29b-41d4-a716-446655440041"
     },
     {
-        "title": "Miškais ateina ruduo",
-        "author": "Marius Katiliškis",
-        "year": 1957,
-        "genre": "Romanas",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440042"
-    },
-    {
-        "title": "Ponas Tešlius",
-        "author": "Stanislaw Lem",
-        "year": 1966,
-        "genre": "Mokslinė fantastika",
+        "title": "test",
+        "author": "test",
+        "year": 2027,
+        "genre": "test",
         "total_copies": 1,
         "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440043"
-    },
-    {
-        "title": "Lobių sala",
-        "author": "Robert Louis Stevenson",
-        "year": 1883,
-        "genre": "Nuotykių",
-        "total_copies": 3,
-        "available_copies": 3,
-        "id": "550e8400-e29b-41d4-a716-446655440044"
-    },
-    {
-        "title": "Vargdieniai",
-        "author": "Victor Hugo",
-        "year": 1862,
-        "genre": "Istorinis",
-        "total_copies": 2,
-        "available_copies": 2,
-        "id": "550e8400-e29b-41d4-a716-446655440045"
-    },
-    {
-        "title": "Kliudžiau",
-        "author": "Jonas Biliūnas",
-        "year": 1906,
-        "genre": "Novelė",
-        "total_copies": 5,
-        "available_copies": 5,
-        "id": "550e8400-e29b-41d4-a716-446655440046"
-    },
-    {
-        "title": "Odisėja",
-        "author": "Homeras",
-        "year": -800,
-        "genre": "Epas",
-        "total_copies": 1,
-        "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440047"
-    },
-    {
-        "title": "Hamlet",
-        "author": "William Shakespeare",
-        "year": 1603,
-        "genre": "Tragedija",
-        "total_copies": 4,
-        "available_copies": 4,
-        "id": "550e8400-e29b-41d4-a716-446655440048"
-    },
-    {
-        "title": "Dieviškoji komedija",
-        "author": "Dante Alighieri",
-        "year": 1320,
-        "genre": "Poema",
-        "total_copies": 1,
-        "available_copies": 1,
-        "id": "550e8400-e29b-41d4-a716-446655440049"
-    },
-    {
-        "title": "Don Kichotas",
-        "author": "Miguel de Cervantes",
-        "year": 1605,
-        "genre": "Romanas",
-        "total_copies": 3,
-        "available_copies": 3,
-        "id": "550e8400-e29b-41d4-a716-446655440050"
+        "id": "170c3eba-2548-42f2-b810-da9db960b88e"
     }
 ]

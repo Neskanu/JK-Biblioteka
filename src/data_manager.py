@@ -40,18 +40,12 @@ logging.info(f"Ar sukompiliuota (Frozen): {getattr(sys, 'frozen', False)}")
 def get_base_path():
     """
     Nustato bazinį projekto kelią.
-    
-    Logika:
-      - Jei programa sukompiliuota (sys.frozen), bazinis kelias yra ten, kur yra .exe failas.
-      - Jei programa leidžiama kaip kodas, bazinis kelias yra projekto šaknis (dviem lygiais aukščiau).
     """
     if getattr(sys, 'frozen', False):
-        # Sukompiliuota programa (.exe)
-        # sys.executable nurodo patį .exe failą
+        # Sukompiliuota programa (.exe) -> Imame .exe failo aplanką
         base_path = os.path.dirname(sys.executable)
     else:
-        # Standartinis Python skriptas
-        # __file__ yra src/data_manager.py -> dirname = src/ -> dirname = root
+        # Skriptas -> Imame projekto šaknį (src tėvinį aplanką)
         current_file = os.path.abspath(__file__)
         src_dir = os.path.dirname(current_file)
         base_path = os.path.dirname(src_dir)
@@ -60,40 +54,28 @@ def get_base_path():
 
 def get_data_file_path(filename):
     """
-    Grąžina pilną kelią iki failų duomenų kataloge.
+    Grąžina pilną kelią iki failo 'data' kataloge.
+    SVARBU: Naudoja get_base_path(), kad veiktų ir sukompiliavus.
     """
-    current_file = os.path.abspath(__file__)
-    src_dir = os.path.dirname(current_file)
-    project_root = os.path.dirname(src_dir)
-    return os.path.join(project_root, 'data', filename)
+    base_path = get_base_path()
+    return os.path.join(base_path, 'data', filename)
 
 def load_data(filepath):
     """
     Nuskaito duomenis iš JSON failo.
-    
-    Parametrai:
-    - filepath: kelias iki failo (pvz., 'data/books.json').
-    
-    Grąžina:
-    - list: Duomenų sąrašas (pvz., knygų žodynai).
-    - Jei failo nėra arba jis sugadintas, grąžina tuščią sąrašą [].
     """
-    # 1. Patikriname, ar failas egzistuoja
     if not os.path.exists(filepath):
-        # Jei failo nėra (pirmas paleidimas), grąžiname tuščią sąrašą,
-        # kad programa nenulūžtų.
+        # Naudojame logging, kad matytume, jog kuriamas naujas failas
+        logging.info(f"Failas nerastas, bus sukurtas naujas: {filepath}")
         return []
 
     try:
-        # 2. Atidarome failą skaitymui ('r' - read)
-        # encoding='utf-8' būtinas lietuviškoms raidėms (ąčęė...)
         with open(filepath, 'r', encoding='utf-8') as f:
             return json.load(f)
             
-    except (json.JSONDecodeError, IOError):
-        # Jei failas yra tuščias arba sugadintas (nevalidus JSON),
-        # grąžiname tuščią sąrašą vietoj klaidos metimo.
-        print(f"Įspėjimas: Failas {filepath} sugadintas arba tuščias. Pradedama nuo nulio.")
+    except (json.JSONDecodeError, IOError) as e:
+        # Pakeista iš print į logging.warning
+        logging.warning(f"Failas {filepath} sugadintas arba tuščias ({e}). Pradedama nuo nulio.")
         return []
 
 def save_data(filepath, data):
