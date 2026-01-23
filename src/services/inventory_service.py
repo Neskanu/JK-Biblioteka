@@ -8,6 +8,8 @@ CONTEXT:
 """
 from datetime import datetime
 from src.models import Book
+import os
+import json
 
 class InventoryService:
     def __init__(self, book_repository):
@@ -57,3 +59,52 @@ class InventoryService:
                 deleted_count += 1
         
         return deleted_count
+    
+    def import_books_from_json(self, filepath):
+        """
+        Migracijos įrankis: Nuskaito JSON failą ir sukelia knygas į DB.
+        Svarbu: Išsaugo originalius ID iš JSON failo.
+        """
+        if not os.path.exists(filepath):
+            print(f"DEBUG: JSON failas nerastas: {filepath}")
+            return 0
+
+        print(f"DEBUG: Pradedama migracija iš {filepath}...")
+        
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except json.JSONDecodeError:
+            print("Klaida: Nepavyko nuskaityti JSON failo.")
+            return 0
+
+        imported_count = 0
+        
+        for item in data:
+            # 1. Patikriname, ar knyga su tokiu ID jau yra DB
+            # (Kad nedubliuotume kaskart paleidus programą)
+            if self.repo.get_by_id(item.get('id')):
+                continue
+
+            # 2. Sukuriame objektą naudodami duomenis iš JSON
+            # Svarbu: preserve ID from JSON!
+            book = Book(
+                id=item.get('id'), # Svarbu: išsaugome seną UUID
+                title=item['title'],
+                author=item['author'],
+                year=int(item['year']),
+                genre=item['genre'],
+                total_copies=item.get('total_copies', 1),
+                available_copies=item.get('available_copies', 1)
+            )
+
+            # 3. Įrašome į DB tiesiogiai per repo
+            self.repo.add(book)
+            imported_count += 1
+
+        if imported_count > 0:
+            print(f"Sėkmingai migruota knygų: {imported_count}")
+        else:
+            print("Duomenų bazė jau užpildyta arba JSON failas tuščias.")
+            
+        return imported_count
