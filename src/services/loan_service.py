@@ -10,7 +10,7 @@ CONTEXT:
 """
 
 from datetime import datetime, timedelta
-from src.config import LOAN_PERIOD_DAYS, MAX_BOOKS_PER_USER, DATE_FORMAT
+from src.config import LOAN_PERIOD_DAYS, MAX_BOOKS_PER_USER, DATE_FORMAT, FINE_PER_DAY
 
 class LoanService:
     def __init__(self, book_manager, user_manager):
@@ -23,6 +23,52 @@ class LoanService:
         """
         self.book_manager = book_manager
         self.user_manager = user_manager
+
+    def calculate_fine(self, user):
+        """
+        Suskaičiuoja bendrą vartotojo baudą už visas vėluojančias knygas.
+        Taip pat grąžina detalią informaciją atvaizdavimui.
+        """
+        total_fine = 0.0
+        overdue_books = []
+        
+        # Tikriname kiekvieną pasiskolintą knygą
+        # user.borrowed_books turėtų būti sąrašas žodynų arba objektų
+        loans = getattr(user, 'borrowed_books', [])
+
+        for loan in loans:
+            # 1. Ištraukiame grąžinimo terminą
+            # Priklausomai nuo jūsų struktūros, tai gali būti loan['due_date'] arba loan.due_date
+            due_date_str = loan.get('due_date') if isinstance(loan, dict) else getattr(loan, 'due_date', None)
+            
+            if due_date_str:
+                try:
+                    due_date = datetime.strptime(due_date_str, "%Y-%m-%d")
+                    today = datetime.now()
+                    
+                    # 2. Tikriname, ar vėluoja
+                    if today > due_date:
+                        delta = today - due_date
+                        overdue_days = delta.days
+                        
+                        # 3. Skaičiuojame baudą šiai knygai
+                        book_fine = overdue_days * FINE_PER_DAY
+                        total_fine += book_fine
+                        
+                        # Išsaugome detales atvaizdavimui
+                        # Mums reikia knygos pavadinimo (jei jis saugomas loane, puiku, jei ne - reiktų ieškoti pagal ID)
+                        # Darykime prielaidą, kad loan turi 'title' arba gausime jį UI dalyje
+                        book_id = loan.get('id') or loan.get('book_id')
+                        
+                        overdue_books.append({
+                            'book_id': book_id,
+                            'days': overdue_days,
+                            'fine': book_fine,
+                            'due_date': due_date_str
+                        })
+                except ValueError:
+                    continue # Jei data blogo formato
+        return total_fine, overdue_books
 
     def borrow_book(self, user_id, book_id):
         """
@@ -42,19 +88,25 @@ class LoanService:
         if not user: return False, "Vartotojas nerastas."
         if not book: return False, "Knyga nerasta."
 
-        # 1. Likučio tikrinimas
+        # 1. Pirmiausia patikriname skolas
+        current_fine, _ = self.calculate_fine(user)
+        
+        if current_fine > 0:
+            return False, f"Turite nesumokėtą {current_fine:.2f} € baudą už vėluojančias knygas. Skolinimas draudžiamas."
+
+        # 2. Likučio tikrinimas
         if book.available_copies <= 0:
             return False, "Šiuo metu visos šios knygos kopijos yra išduotos."
 
-        # 2. Vėlavimų tikrinimas (naudojame vidinį metodą)
+        # 3. Vėlavimų tikrinimas (naudojame vidinį metodą)
         if self.get_user_overdue_loans(user):
             return False, "Turite vėluojančių knygų! Skolinimas draudžiamas."
 
-        # 3. Limito tikrinimas
+        # 4. Limito tikrinimas
         if len(user.active_loans) >= MAX_BOOKS_PER_USER:
             return False, f"Pasiektas {MAX_BOOKS_PER_USER} knygų limitas."
 
-        # 4. Dublikatų tikrinimas
+        # 5. Dublikatų tikrinimas
         for loan in user.active_loans:
             if loan['book_id'] == book.id:
                 return False, "Jau turite šios knygos kopiją."
@@ -149,4 +201,4 @@ class LoanService:
             except ValueError:
                 pass
         
-        return overdue_loans
+        return overdue_loans    

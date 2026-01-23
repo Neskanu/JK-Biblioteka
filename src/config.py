@@ -11,6 +11,7 @@ CONTEXT:
 # Skolinimo taisyklės
 LOAN_PERIOD_DAYS = 14   # Kiek dienų galima laikyti knygą
 MAX_BOOKS_PER_USER = 5  # Maksimalus knygų kiekis vienam skaitytojui
+FINE_PER_DAY = 0.50 # 50 centų už dieną
 
 # Duomenų failų pavadinimai (jei ateityje reiktų keisti)
 BOOKS_FILENAME = 'books.json'
