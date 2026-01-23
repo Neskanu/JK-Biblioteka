@@ -65,7 +65,7 @@ class Library:
         self.book_repository.get_candidates_by_year = lambda y: [b for b in self.book_repository.books if int(b.year) < y and b.available_copies == b.total_copies]
         
         # Pervadiname metodus, kad atitiktų senąjį API
-        self.book_repository.restore_from_backup = self.book_repository.restore_backup
+        # self.book_repository.restore_from_backup = self.book_repository.restore_backup
         self.book_repository.search_books = self.book_repository.search
         self.book_repository.get_all_books = self.book_repository.get_all
 

@@ -9,6 +9,10 @@ RELATIONSHIPS:
 import streamlit as st
 from src.library import Library
 from src.web import auth, admin_ui, reader_ui
+from src.database import initialize_db  # <--- Svarbus importas
+
+# Prieš kuriant Library objektą, sukuriame lenteles, jei jų nėra
+initialize_db()
 
 # --- KONFIGŪRACIJA ---
 st.set_page_config(

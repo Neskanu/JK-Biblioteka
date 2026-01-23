@@ -1,11 +1,10 @@
 """
 FILE: src/services/inventory_service.py
-PURPOSE: Valdo knygų fondą (Inventorių).
+PURPOSE: Valdo knygų fondą su SQL palaikymu.
 RELATIONSHIPS:
-  - Bendrauja su BookRepository duomenų keitimui.
+  - Kviečia BookRepository metodus (add, update, remove).
 CONTEXT:
-  - Čia yra taisyklė: "Jei knyga jau yra, nekurk naujos, o padidink kiekį".
-    Tai vadinama Verslo Logika (Business Logic).
+  - Perrašytas, kad nenaudotų failų perrašymo logikos.
 """
 from datetime import datetime
 from src.models import Book
@@ -15,71 +14,46 @@ class InventoryService:
         self.repo = book_repository
 
     def add_book(self, title, author, year, genre):
-            """
-            Prideda knygą su griežta validacija.
-            """
-            # 1. DEBUG: Atspausdiname į konsolę, ką tiksliai gauname (kad matytumėte terminale)
-            print(f"DEBUG: Bandoma pridėti knygą. Metai: {year} (Tipas: {type(year)})")
+        """
+        Prideda knygą arba atnaujina esamą (SQL UPDATE/INSERT).
+        """
+        try:
+            year_int = int(year)
+        except ValueError:
+            raise ValueError(f"Klaida: Metai turi būti skaičius, gauta: {year}")
 
-            # 2. PRIVERSTINIS KONVERTAVIMAS (Defensive Programming)
-            # Tai apsaugo nuo situacijų, jei iš UI netyčia atkeliauja tekstas "2029"
-            try:
-                year_int = int(year)
-            except ValueError:
-                raise ValueError(f"Klaida: Metai turi būti skaičius, o gauta: {year}")
+        # Validacija
+        current_year = datetime.now().year
+        if year_int > current_year + 1 or year_int < -1000:
+            raise ValueError(f"Klaida: Netinkami metai {year_int}.")
 
-            # 3. LAIKO PATIKRINIMAS
-            current_year = datetime.now().year
-            limit_future_year = current_year + 1
-            limit_past_year = -1000
-
-            # Patikriname ateitį
-            if year_int > limit_future_year:
-                raise ValueError(f"Klaida: Knygos metai ({year_int}) negali būti vėlesni nei {limit_future_year}.")
-
-            # Patikriname praeitį (NAUJA DALIS)
-            if year_int < limit_past_year:
-                raise ValueError(f"Klaida: Knygos metai ({year_int}) negali būti ankstesni nei {limit_past_year}.")
-
-            # 4. PATIKRINIMAS, AR KNYGA EGZISTUOJA
-            existing_book = self.repo.find_by_details(title, author)
-            
-            if existing_book:
-                existing_book.total_copies += 1
-                existing_book.available_copies += 1
-                self.repo.save()
-                print("DEBUG: Atnaujinta esama knyga.")
-                return existing_book
-            
-            # 5. NAUJOS KNYGOS KŪRIMAS
-            # Svarbu: naudojame year_int, o ne pradinį year
-            new_book = Book(title, author, year_int, genre, total_copies=1, available_copies=1)
-            self.repo.add(new_book)
-            print("DEBUG: Sukurta nauja knyga.")
-            return new_book
+        # 1. Tikriname DB
+        existing_book = self.repo.find_by_details(title, author)
+        
+        if existing_book:
+            # 2. Atnaujiname (UPDATE)
+            existing_book.total_copies += 1
+            existing_book.available_copies += 1
+            # Čia esminis skirtumas: kviečiame update(), o ne save()
+            self.repo.update(existing_book)
+            print("DEBUG: Atnaujinta esama knyga (SQL).")
+            return existing_book
+        
+        # 3. Kuriame naują (INSERT)
+        new_book = Book(title=title, author=author, year=year_int, genre=genre)
+        # BookRepository.add atlieka INSERT
+        self.repo.add(new_book)
+        print("DEBUG: Įterpta nauja knyga (SQL).")
+        return new_book
 
     def batch_delete(self, book_ids):
         """
-        Masinis knygų šalinimas su vienkartiniu išsaugojimu.
+        Masinis knygų šalinimas.
         """
-        print(f"DEBUG: Pradedamas masinis trynimas. Kiekis: {len(book_ids)}")
-        
         deleted_count = 0
-        
-        # 1. Triname tik iš atminties (RAM)
         for bid in book_ids:
-            # Naudojame naują metodą, kuris nerašo į failą
-            if self.repo.remove_without_save(bid):
-                print(f"DEBUG: Iš atminties pašalinta knyga ID: {bid}")
+            # Kviečiame repo.remove, kuris iškart vykdo DELETE FROM
+            if self.repo.remove(bid):
                 deleted_count += 1
-            else:
-                print(f"DEBUG: Knyga {bid} nerasta atmintyje.")
         
-        # 2. Įrašome į failą TIK VIENĄ KARTĄ
-        if deleted_count > 0:
-            print(f"DEBUG: Baigta. Iš viso ištrinta: {deleted_count}. Saugoma į diską...")
-            self.repo.save()
-        else:
-            print("DEBUG: Nieko neištrinta, failas neliečiamas.")
-            
         return deleted_count

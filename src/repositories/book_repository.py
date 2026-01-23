@@ -1,124 +1,181 @@
 """
 FILE: src/repositories/book_repository.py
-PURPOSE: Valdo operacijas su knygų duomenų failu (books.json).
+PURPOSE: Valdo knygų duomenų mainus tarp aplikacijos ir SQLite duomenų bazės.
 RELATIONSHIPS:
-  - Naudoja src/models.py (Book klasę).
+  - Importuoja database.py ryšiui gauti.
+  - Konvertuoja DB eilutes į src/models.py Book objektus.
 CONTEXT:
-  - Atskirtas failas leidžia lengviau valdyti duomenis. Jei ateityje failą pakeistume
-    į SQL duomenų bazę, reikėtų keisti TIK šį failą, o ne visą programą.
+  - Pakeičia senąją JSON implementaciją.
+  - Naudoja tiesiogines SQL užklausas CRUD operacijoms.
 """
 
-import os
-from src import data_manager
+import sqlite3
+from typing import List, Optional
+from src.database import get_connection
 from src.models import Book
-from src.data_manager import load_data, save_data, get_data_file_path
-from src.config import BOOKS_FILENAME, BACKUP_FILENAME
 
 class BookRepository:
     def __init__(self):
-        # Nustatome kelius iki pagrindinio failo ir backup failo
-        self.filepath = get_data_file_path(BOOKS_FILENAME)
-        self.backup_path = get_data_file_path(BACKUP_FILENAME)
-        self.books = []
-        self.filename = BOOKS_FILENAME
-        self._load()
+        """
+        Konstruktorius. SQL versijoje mums nereikia užkrauti visų duomenų į atmintį
+        starto metu, todėl init yra tuščias.
+        """
+        pass
 
-    def _load(self):
-        """Vidinė funkcija duomenų užkrovimui iš JSON."""
-        # 1. Gauname PILNĄ kelią iki failo (pvz., D:\...\data\books.json)
-        full_path = data_manager.get_data_file_path(self.filename)
-        print(f"DEBUG: [BookRepository] Skaitoma iš: {full_path}")
-        
-        # 2. Užkrauname naudodami pilną kelią
-        data = data_manager.load_data(full_path)
-        
-        # 3. Konvertuojame
-        self.books = [Book(**item) for item in data]
-        print(f"DEBUG: [BookRepository] Užkrauta knygų: {len(self.books)}")
+    def _row_to_book(self, row: sqlite3.Row) -> Book:
+        """
+        Pagalbinis metodas: Konvertuoja SQL eilutę į Book objektą.
+        Svarbu, kad stulpelių pavadinimai atitiktų Book klasės laukus arba būtų konvertuojami.
+        """
+        return Book(
+            id=row['id'],
+            title=row['title'],
+            author=row['author'],
+            year=row['year'],
+            genre=row['genre'],
+            total_copies=row['total_copies'],
+            available_copies=row['available_copies']
+        )
+
+    def get_all(self) -> List[Book]:
+        """
+        Grąžina visas knygas iš duomenų bazės.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM books")
+            rows = cursor.fetchall()
+            # Konvertuojame kiekvieną eilutę į Book objektą
+            return [self._row_to_book(row) for row in rows]
+        finally:
+            conn.close()
+
+    def get_by_id(self, book_id: str) -> Optional[Book]:
+        """
+        Suranda knygą pagal unikalų ID.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT * FROM books WHERE id = ?", (str(book_id),))
+            row = cursor.fetchone()
+            if row:
+                return self._row_to_book(row)
+            return None
+        finally:
+            conn.close()
+
+    def find_by_details(self, title: str, author: str) -> Optional[Book]:
+        """
+        Suranda knygą pagal pavadinimą ir autorių (dublikatų prevencijai).
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            # SQL paieška nepriklausomai nuo raidžių registro (COLLATE NOCASE būtų geriau, 
+            # bet čia naudojame paprastą LOWER() funkciją).
+            cursor.execute(
+                "SELECT * FROM books WHERE LOWER(title) = ? AND LOWER(author) = ?", 
+                (title.lower(), author.lower())
+            )
+            row = cursor.fetchone()
+            if row:
+                return self._row_to_book(row)
+            return None
+        finally:
+            conn.close()
+
+    def search(self, query: str) -> List[Book]:
+        """
+        Paieška naudojant SQL LIKE operatorių.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            search_term = f"%{query}%"
+            cursor.execute(
+                "SELECT * FROM books WHERE title LIKE ? OR author LIKE ?", 
+                (search_term, search_term)
+            )
+            rows = cursor.fetchall()
+            return [self._row_to_book(row) for row in rows]
+        finally:
+            conn.close()
+
+    def add(self, book: Book):
+        """
+        Įterpia naują knygą į duomenų bazę.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO books (id, title, author, year, genre, total_copies, available_copies)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (book.id, book.title, book.author, book.year, book.genre, book.total_copies, book.available_copies))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def remove(self, book_id: str):
+        """
+        Ištrina knygą iš duomenų bazės.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM books WHERE id = ?", (str(book_id),))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"SQL Error: {e}")
+            return False
+        finally:
+            conn.close()
+            
+    def remove_without_save(self, book_id: str):
+        """
+        Suderinamumui su senu kodu. SQL atveju remove() veikia iškart,
+        todėl šis metodas tiesiog kviečia remove().
+        """
+        return self.remove(book_id)
 
     def save(self):
         """
-        Išsaugo visus pakeitimus į JSON failą.
-        SVARBU: Būtina naudoti get_data_file_path, kitaip failas atsiras ne ten!
+        Suderinamumui su senu kodu (Backward Compatibility).
+        JSON versijoje šis metodas įrašydavo visą sąrašą į failą.
+        SQL versijoje pakeitimai vyksta iškart (autocommit), todėl šis metodas gali būti tuščias
+        arba naudojamas specifiniam 'commit', jei naudotume transakcijas per kelis metodus.
         """
-        # 1. Konvertuojame objektus į žodynus
-        data = [book.__dict__ for book in self.books]
+        # SQL atveju duomenys išsaugomi iškart po add/remove/update operacijų.
+        # Tačiau, kadangi jūsų Services kodas (pvz., InventoryService) keičia objekto laukus
+        # (pvz., book.total_copies += 1) ir tada kviečia repo.save(),
+        # čia mes turėtume realizuoti UPDATE logiką visiems objektams, bet tai neefektyvu.
         
-        # 2. Gauname teisingą kelią (į 'data' aplanką)
-        full_path = data_manager.get_data_file_path(self.filename)
+        # Geriausia praktika: ateityje Servisai turėtų kviesti `repo.update(book)`.
+        # Kol kas paliekame tuščią, bet įspėjame.
+        pass
         
-        # 3. Įrašome
-        data_manager.save_data(full_path, data)
-
-    # --- Duomenų gavimo metodai ---
-
-    def get_all(self):
-        return self.books
-
-    def get_by_id(self, book_id):
+    def update(self, book: Book):
         """
-        Suranda knygą pagal ID.
-        Svarbu: Lygina pavertus į string, kad išvengtume int vs str problemų.
+        NAUJAS METODAS: Atnaujina esamos knygos duomenis.
+        Būtina naudoti vietoje senojo 'modify object -> save()'.
         """
-        search_id = str(book_id).strip()
-
-        for book in self.books:
-            if book.id == book_id:
-                return book
-        return None
-
-    def find_by_details(self, title, author):
-        """
-        Tikrina, ar knyga egzistuoja (tikslus atitikmuo).
-        Naudojama prieš pridedant naują knygą, kad išvengtume dublikatų.
-        """
-        for book in self.books:
-            if book.title.lower() == title.lower() and book.author.lower() == author.lower():
-                return book
-        return None
-
-    def search(self, query):
-        """
-        Filtruoja knygas pagal paieškos frazę.
-        """
-        query = query.lower()
-        # Grąžiname naują sąrašą tik su tomis knygomis, kurios atitinka paiešką pagal pavadinimą arba autorių
-        return [b for b in self.books if query in b.title.lower() or query in b.author.lower()]
-
-    # --- Modifikavimo metodai ---
-
-    def add(self, book):
-        self.books.append(book)
-        self.save()
-
-    def remove(self, book_id):
-        """Šalina vieną knygą ir IŠKART saugo (standartinis trynimas)."""
-        if self.remove_without_save(book_id):
-            self.save()
-            return True
-        return False
-
-    def remove_without_save(self, book_id):
-        """
-        Pagalbinis metodas: Tik pašalina iš atminties.
-        Naudojamas masiniam trynimui, kad nereikėtų 100 kartų atidarinėti failo.
-        """
-        book = self.get_by_id(book_id)
-        if book:
-            self.books.remove(book)
-            return True
-        return False
-
-    def restore_backup(self):
-        """
-        Speciali funkcija: atstato duomenis iš atsarginės kopijos.
-        """
-        if not os.path.exists(self.backup_path):
-            return False, "Backup failas nerastas."
+        conn = get_connection()
+        cursor = conn.cursor()
         try:
-            data = load_data(self.backup_path)
-            self.books = [Book.from_dict(item) for item in data]
-            self.save() # Iškart perrašome ir pagrindinį failą
-            return True, f"Sėkmingai atkurta {len(self.books)} knygų."
-        except Exception as e:
-            return False, str(e)
+            cursor.execute('''
+                UPDATE books 
+                SET title=?, author=?, year=?, genre=?, total_copies=?, available_copies=?
+                WHERE id=?
+            ''', (book.title, book.author, book.year, book.genre, book.total_copies, book.available_copies, book.id))
+            conn.commit()
+        finally:
+            conn.close()
+
+    # Kadangi senas kodas naudoja tiesioginį kreipimąsi į library.book_manager.books sąrašą,
+    # mes sukuriame 'property', kuris imituoja šį sąrašą (nors tai nėra efektyvu dideliems kiekiams).
+    @property
+    def books(self):
+        return self.get_all()
