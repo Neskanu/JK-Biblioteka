@@ -1,6 +1,11 @@
 """
 FILE: src/web/reader_ui.py
-PURPOSE: Skaitytojo sąsaja (Knygų paieška ir paskyra).
+PURPOSE: Skaitytojo sąsaja su patobulintu klaidų valdymu.
+RELATIONSHIPS:
+  - Naudoja pandas duomenų atvaizdavimui.
+  - Kviekia library.borrow_book ir library.return_book.
+CONTEXT:
+  - PRIDĖTA: Detalus klaidų atvaizdavimas ir Debug informacija nesėkmės atveju.
 """
 
 import streamlit as st
@@ -27,10 +32,13 @@ def render_dashboard():
 
 def _render_catalog(library, user):
     st.header("🔎 Knygų Katalogas")
+    
+    # Visada gauname naujausius duomenis iš DB
+    library.book_repository.refresh_cache() 
     books = library.book_repository.get_all()
     
     if not books:
-        st.warning("Tuščia.")
+        st.warning("Biblioteka tuščia.")
         return
 
     data = []
@@ -62,29 +70,67 @@ def _render_catalog(library, user):
     )
 
     selected = edited[edited['Pasirinkti'] == True]
+    
     if not selected.empty:
         if st.button(f"Pasiimti ({len(selected)})", type="primary"):
-            succ_count = 0
-            for _, row in selected.iterrows():
-                succ, _ = library.borrow_book(user.id, row['id'])
-                if succ: succ_count += 1
+            successes = []
+            errors = []
             
-            if succ_count > 0:
-                st.toast(f"Paimta: {succ_count}!", icon="✅")
+            progress_bar = st.progress(0)
+            total = len(selected)
+
+            for idx, (_, row) in enumerate(selected.iterrows()):
+                # Iškviečiame logiką ir gauname žinutę
+                # Pastaba: library.borrow_book turi priimti user_id arba user objektą
+                try:
+                    success, message = library.borrow_book(user, row['id'])
+                    
+                    if success:
+                        successes.append(f"✅ {row['title']}: {message}")
+                    else:
+                        errors.append(f"❌ {row['title']}: {message}")
+                except Exception as e:
+                    errors.append(f"💥 {row['title']}: Kritinė klaida - {str(e)}")
+                
+                progress_bar.progress((idx + 1) / total)
+
+            # Rezultatų atvaizdavimas
+            if successes:
+                st.success(f"Sėkmingai paimta: {len(successes)}")
+                for s in successes:
+                    st.write(s)
+            
+            if errors:
+                st.error(f"Nepavyko paimti: {len(errors)}")
+                for e in errors:
+                    st.write(e)
+                
+                # --- DEBUG INFO ---
+                # with st.expander("Techninė informacija (Debug)"):
+                #     st.write("Vartotojo ID:", user.id)
+                #     st.write("Bandyta imti:", selected[['id', 'title']].to_dict('records'))
+                #     st.write("Session State User:", vars(user))
+
+            # Perkrauname tik jei viskas pavyko, kitaip paliekame klaidą ekrane
+            if not errors and successes:
                 time.sleep(1.5)
                 st.rerun()
-            else:
-                st.error("Nepavyko pasiimti (galbūt limitas ar nėra kopijų).")
 
 def _render_my_books(library, user):
     st.header("📚 Mano Knygos")
-    if not user.active_loans:
-        st.info("Neturite knygų.")
+    
+    # Atnaujiname vartotojo duomenis iš DB, kad matytume tikras paskolas
+    # (nes session_state.user gali būti pasenęs)
+    current_user = library.user_repository.get_by_id(user.id)
+    
+    if not current_user or not current_user.active_loans:
+        st.info("Neturite pasiėmę knygų.")
         return
 
     data = []
-    for l in user.active_loans:
-        r = l.copy()
+    for l in current_user.active_loans:
+        # Užtikriname, kad turime dict (SQL grąžina dict, bet kartais objektus)
+        r = l.copy() if isinstance(l, dict) else l.__dict__.copy()
         r['Grąžinti'] = False
         data.append(r)
     
@@ -93,7 +139,8 @@ def _render_my_books(library, user):
         df, key="my_ed", width="stretch",
         column_config={
             "Grąžinti": st.column_config.CheckboxColumn("Grąžinti?", width="small"),
-            "due_date": st.column_config.TextColumn("Terminas", width="medium")
+            "due_date": st.column_config.TextColumn("Terminas", width="medium"),
+            "title": st.column_config.TextColumn("Pavadinimas"),
         },
         disabled=["title", "due_date", "book_id"],
         hide_index=True,
@@ -103,8 +150,26 @@ def _render_my_books(library, user):
     to_return = edited[edited['Grąžinti'] == True]
     if not to_return.empty:
         if st.button(f"Grąžinti ({len(to_return)})", type="primary"):
+            successes = []
+            errors = []
+
             for _, row in to_return.iterrows():
-                library.return_book(user.id, row['book_id'])
-            st.success("Grąžinta!")
-            time.sleep(1)
-            st.rerun()
+                try:
+                    success, message = library.return_book(current_user, row['book_id'])
+                    if success:
+                        successes.append(f"✅ {row.get('title', 'Knyga')}")
+                    else:
+                        errors.append(f"❌ {row.get('title', 'Knyga')}: {message}")
+                except Exception as e:
+                     errors.append(f"💥 Kritinė klaida grąžinant ID {row.get('book_id')}: {e}")
+
+            if successes:
+                st.success(f"Grąžinta: {len(successes)}")
+            
+            if errors:
+                st.error("Klaidos grąžinant knygas:")
+                for e in errors:
+                    st.write(e)
+            else:
+                time.sleep(1)
+                st.rerun()
