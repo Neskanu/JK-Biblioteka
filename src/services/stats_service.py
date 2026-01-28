@@ -1,119 +1,123 @@
 """
 FILE: src/services/stats_service.py
-PURPOSE: Generuoja statistines ataskaitas.
+PURPOSE: Skaičiuoja bibliotekos statistiką.
 RELATIONSHIPS:
-  - Naudoja Repozitorijas duomenų gavimui.
+  - Inicijuojamas src/library.py.
+  - Naudoja book_repository ir user_repository duomenų analizei.
 CONTEXT:
-  - Pritaikyta SQLAlchemy objektų struktūrai.
+  - Perrašyta: Pridėtas universalus datų valdymas (String vs Date objektas).
+  - Ištaisyta TypeError klaida lyginant datą su stringu.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, date
 from collections import Counter
-from src.config import DATE_FORMAT
 
 class StatsService:
-    def __init__(self, book_repo, user_repo):
-        self.book_repo = book_repo # Pervadinta iš book_manager
-        self.user_repo = user_repo # Pervadinta iš user_manager
-
-    def get_all_overdue_report(self):
-        overdue_report = []
-        today = datetime.now().date()
-        
-        # Gauname visus vartotojus su jų paskolomis
-        users = self.user_repo.get_all()
-        
-        for user in users:
-            if user.role == 'reader':
-                for loan in user.loans: # user.loans dabar yra objektų sąrašas
-                    try:
-                        # loan.due_date yra string (YYYY-MM-DD)
-                        due = datetime.strptime(loan.due_date, DATE_FORMAT).date()
-                        if due < today:
-                            overdue_report.append({
-                                "title": loan.title, # Naudojame tašką, ne ['key']
-                                "user": user.username,
-                                "due_date": loan.due_date
-                            })
-                    except (ValueError, TypeError):
-                        pass
-        return overdue_report
-
-    def get_lost_books_candidates(self, years_overdue):
-        threshold_date = datetime.now() - timedelta(days=years_overdue * 365)
-        lost_book_ids = set()
-        
-        users = self.user_repo.get_all()
-        
-        for user in users:
-            for loan in user.loans:
-                try:
-                    due_date_obj = datetime.strptime(loan.due_date, DATE_FORMAT)
-                    if due_date_obj < threshold_date:
-                        lost_book_ids.add(loan.book_id)
-                except (ValueError, TypeError):
-                    pass
-        
-        candidates = []
-        for book_id in lost_book_ids:
-            book = self.book_repo.get_by_id(book_id)
-            if book:
-                candidates.append(book)
-        return candidates
+    def __init__(self, book_repository, user_repository):
+        self.book_repo = book_repository
+        self.user_repo = user_repository
 
     def get_advanced_statistics(self):
-        stats = {}
-        
-        all_books = self.book_repo.get_all()
-        all_genres = [b.genre for b in all_books if b.genre]
-        
-        if all_genres:
-            top_genre, count = Counter(all_genres).most_common(1)[0]
-            stats['inventory_top_genre'] = f"{top_genre} ({count} vnt.)"
-        else:
-            stats['inventory_top_genre'] = "Nėra duomenų"
-
-        # Skolinimosi statistika
-        borrowed_genres = []
-        total_overdue_books = 0
-        reader_count = 0
-        today = datetime.now().date()
-        
+        """
+        Sugeneruoja statistikos žodyną admin UI.
+        """
+        books = self.book_repo.get_all()
         users = self.user_repo.get_all()
         
-        for user in users:
-            if user.role == 'reader':
-                reader_count += 1
-                for loan in user.loans:
-                    # Kadangi loan objektas turi book_id, galime rasti knygą
-                    book = self.book_repo.get_by_id(loan.book_id)
-                    if book and book.genre:
-                        borrowed_genres.append(book.genre)
-                    
-                    try:
-                        due_obj = datetime.strptime(loan.due_date, DATE_FORMAT).date()
-                        if due_obj < today:
-                            total_overdue_books += 1
-                    except (ValueError, TypeError):
-                        pass
-        
-        if borrowed_genres:
-            top_borrowed, b_count = Counter(borrowed_genres).most_common(1)[0]
-            stats['borrowed_top_genre'] = f"{top_borrowed} ({b_count} skolinimai)"
-        else:
-            stats['borrowed_top_genre'] = "-"
+        # 1. Populiariausias žanras (Inventory)
+        genres = [b.genre for b in books if b.genre]
+        top_genre = Counter(genres).most_common(1)
+        inventory_top_genre = top_genre[0][0] if top_genre else "Nėra duomenų"
 
-        if reader_count > 0:
-            avg = total_overdue_books / reader_count
-            stats['avg_overdue_per_reader'] = f"{avg:.2f}"
-        else:
-            stats['avg_overdue_per_reader'] = "0.00"
+        # 2. Vidutiniai metai
+        years = [b.year for b in books if b.year]
+        avg_year = int(sum(years) / len(years)) if years else 0
+
+        # 3. Knygų skolinimosi statistika
+        active_loans = []
+        for u in users:
+            active_loans.extend(u.active_loans)
             
-        years = [int(b.year) for b in all_books if b.year]
-        if years:
-            avg_year = sum(years) / len(years)
-            stats['avg_book_year'] = f"{int(avg_year)} metai"
-        else:
-            stats['avg_book_year'] = "-"
+        borrowed_genres = []
+        for loan in active_loans:
+             # Saugiai gauname knygos informaciją
+             book = getattr(loan, 'book', None)
+             if not book and hasattr(loan, 'book_id'):
+                 book = self.book_repo.get_by_id(loan.book_id)
+                 
+             if book and book.genre:
+                 borrowed_genres.append(book.genre)
+        
+        top_borrowed = Counter(borrowed_genres).most_common(1)
+        borrowed_top_genre = top_borrowed[0][0] if top_borrowed else "-"
 
-        return stats
+        # 4. Vėlavimų statistika
+        overdue_books = self.get_all_overdue_books()
+        overdue_count = len(overdue_books)
+        reader_count = len([u for u in users if u.role == 'reader'])
+        avg_overdue = round(overdue_count / reader_count, 2) if reader_count > 0 else 0
+
+        return {
+            'inventory_top_genre': inventory_top_genre,
+            'borrowed_top_genre': borrowed_top_genre,
+            'avg_book_year': avg_year,
+            'avg_overdue_per_reader': avg_overdue
+        }
+
+    def get_all_overdue_books(self):
+        """
+        Grąžina sąrašą vėluojančių knygų su vartotojo informacija.
+        Kviečiamas iš library.get_all_overdue_books().
+        """
+        overdue_list = []
+        users = self.user_repo.get_all()
+        
+        # Naudojame date objektą palyginimui (ne stringą)
+        today = datetime.now().date()
+
+        for user in users:
+            for loan in user.active_loans:
+                # Normalizuojame datą į datetime.date objektą
+                # Tai apsaugo nuo klaidų, jei DB grąžina stringą ARBA date objektą
+                loan_due = self._parse_date(loan.due_date)
+                
+                if loan_due and loan_due < today:
+                    # Naudojame saugią prieigą prie atributų
+                    title = getattr(loan, 'title', 'Nežinoma knyga')
+                    
+                    overdue_list.append({
+                        "Knyga": title,
+                        "Skaitytojas": user.username,
+                        "Terminas": str(loan.due_date), # UI rodome originalų formatą
+                        "Vėluoja (dienų)": (today - loan_due).days
+                    })
+        return overdue_list
+
+    def _parse_date(self, date_value):
+        """
+        Universali funkcija konvertuoti stringą arba datetime į date objektą.
+        Apsaugo nuo 'TypeError: < not supported between instances of datetime.date and str'.
+        """
+        if date_value is None:
+            return None
+            
+        if isinstance(date_value, str):
+            try:
+                # Bandom parsilinti ISO formatą (YYYY-MM-DD)
+                return datetime.strptime(date_value, "%Y-%m-%d").date()
+            except ValueError:
+                return None
+        elif isinstance(date_value, datetime):
+            return date_value.date()
+        elif isinstance(date_value, date):
+            return date_value
+            
+        return None
+
+    def _days_overdue(self, due_date_val):
+        """Pagalbinė funkcija (jei dar kur nors naudojama tiesiogiai)."""
+        d_due = self._parse_date(due_date_val)
+        if d_due:
+            d_now = datetime.now().date()
+            return (d_now - d_due).days
+        return 0

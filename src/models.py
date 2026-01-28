@@ -1,17 +1,18 @@
 """
 FILE: src/models.py
-PURPOSE: Apibrėžia duomenų bazės lentelių struktūrą (ORM Modeliai).
+PURPOSE: Apibrėžia duomenų bazės lentelių struktūrą (ORM Modeliai) ir ryšius.
 RELATIONSHIPS:
   - Paveldi iš src/database.py -> Base.
-  - Apibrėžia ryšius tarp User, Book ir Loan.
+  - Apibrėžia tipizuotus ryšius tarp User, Book ir Loan.
 CONTEXT:
-  - Pakeista iš paprastų dataclasses į SQLAlchemy modelius.
-  - Pridėti Foreign Keys ir Relationships.
+  - Naudoja modernią SQLAlchemy 2.0 sintaksę.
+  - Pridėtas .get() metodas Loan klasei atgaliniam suderinamumui.
 """
 
 import uuid
-from sqlalchemy import Column, String, Integer, ForeignKey, Date
-from sqlalchemy.orm import relationship
+from typing import List, Optional
+from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database import Base
 
 def generate_uuid():
@@ -20,27 +21,26 @@ def generate_uuid():
 
 class Book(Base):
     """
-    Atstovauja 'books' lentelę.
+    Knygų modelis.
     """
     __tablename__ = "books"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    title = Column(String(255), nullable=False)
-    author = Column(String(255), nullable=False)
-    year = Column(Integer, nullable=True)
-    genre = Column(String(100), nullable=True)
-    total_copies = Column(Integer, default=1)
-    available_copies = Column(Integer, default=1)
+    # SQLAlchemy 2.0 sintaksė
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    title: Mapped[str] = mapped_column(String(255))
+    author: Mapped[str] = mapped_column(String(255))
+    year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    genre: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    total_copies: Mapped[int] = mapped_column(Integer, default=1)
+    available_copies: Mapped[int] = mapped_column(Integer, default=1)
 
-    # Ryšys su Loan lentele (vienas-su-daugeliu)
-    # cascade="all, delete" reiškia, kad ištrynus knygą, dings ir jos istorija (paskolos)
-    loans = relationship("Loan", back_populates="book", cascade="all, delete-orphan")
+    # Ryšys su Loan (naudojant string "Loan", kad išvengtume ciklinės priklausomybės)
+    loans: Mapped[List["Loan"]] = relationship(back_populates="book", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Book(title='{self.title}', available={self.available_copies})>"
     
     def to_dict(self):
-        """Serializacija UI atvaizdavimui (suderinamumas su senu kodu)."""
         return {
             "id": self.id,
             "title": self.title,
@@ -51,64 +51,58 @@ class Book(Base):
             "available_copies": self.available_copies
         }
 
-
 class User(Base):
     """
-    Atstovauja 'users' lentelę. 
-    Apjungia tiek Reader, tiek Librarian logiką vienoje lentelėje.
+    Vartotojų modelis.
     """
     __tablename__ = "users"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    username = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False) # 'reader' arba 'librarian'
-    password = Column(String(255), nullable=True) # Tik bibliotekininkams
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    username: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(50)) # 'reader' arba 'librarian'
+    password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    # Ryšys: Vartotojas gali turėti daug paskolų
-    loans = relationship("Loan", back_populates="user", cascade="all, delete-orphan")
+    loans: Mapped[List["Loan"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     
-    # Šis property reikalingas senam kodui, kuris tikisi `active_loans` sąrašo
     @property
-    def active_loans(self):
-        # Grąžina paskolų sąrašą (objektus)
+    def active_loans(self) -> List["Loan"]:
         return self.loans
 
     def __repr__(self):
         return f"<User(username='{self.username}', role='{self.role}')>"
 
     def to_dict(self):
-        """Suderinamumas su UI."""
         return {
             "id": self.id,
             "username": self.username,
             "role": self.role,
-            # active_loans čia neįtraukiame tiesiogiai, kad neapkrautume JSON, 
-            # nebent reikia specifinėse vietose.
         }
-
 
 class Loan(Base):
     """
-    Atstovauja 'loans' lentelę (jungiamoji lentelė).
-    Saugo informaciją apie pasiskolinimą.
+    Paskolų modelis (jungiamoji lentelė).
+    Svarbu: Ši klasė turi būti faile, kitaip kils ImportError.
     """
     __tablename__ = "loans"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    book_id = Column(String(36), ForeignKey("books.id"), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    book_id: Mapped[str] = mapped_column(ForeignKey("books.id"))
     
-    # Denormalizacija: Saugome pavadinimą, kad nereikėtų visada join'inti, 
-    # arba paliekame tuščią ir pasitikime 'book' relationship.
-    # Senas kodas naudojo 'title', todėl paliekame suderinamumui.
-    title = Column(String(255), nullable=True) 
-    
-    due_date = Column(String(20), nullable=False) # Paprastumo dėlei saugome kaip tekstą YYYY-MM-DD
+    # Denormalizuoti laukai
+    title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    due_date: Mapped[str] = mapped_column(String(20))
 
-    # ORM Ryšiai
-    user = relationship("User", back_populates="loans")
-    book = relationship("Book", back_populates="loans")
+    user: Mapped["User"] = relationship(back_populates="loans")
+    book: Mapped["Book"] = relationship(back_populates="loans")
 
     def __getitem__(self, key):
-        """Leidžia pasiekti atributus kaip žodyną (loan['title']), reikalinga senam UI kodui."""
+        """Leidžia pasiekti atributus kaip žodyną: loan['title']"""
         return getattr(self, key)
+    
+    def get(self, key, default=None):
+        """
+        Leidžia naudoti .get() metodą, lyg tai būtų žodynas.
+        Reikalingas senesniam UI kodui, kuris tikisi dict.
+        """
+        return getattr(self, key, default)

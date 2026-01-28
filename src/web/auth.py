@@ -1,46 +1,82 @@
 """
 FILE: src/web/auth.py
-PURPOSE: Tvarko vartotojų prisijungimą ir atsijungimą.
+PURPOSE: Streamlit vartotojo sąsaja prisijungimui.
+RELATIONSHIPS:
+  - Kviečiama iš app.py.
+  - Naudoja src/services/auth_service.py.
+CONTEXT:
+  - Atnaujinta: Atskirti prisijungimo langai Skaitytojui (be slaptažodžio) ir Adminui.
 """
 
 import streamlit as st
+from src.services.auth_service import AuthService
 
-def login_page():
-    st.markdown("## 🔐 Prisijungimas prie Bibliotekos")
+def render_login():
+    """
+    Atvaizduoja prisijungimo formą su dviem pasirinkimais: Skaitytojas arba Bibliotekininkas.
+    """
+    st.title("📚 Bibliotekos Sistema")
     
-    tab1, tab2 = st.tabs(["Skaitytojas", "Bibliotekininkas"])
+    # Centruojame
+    _, col, _ = st.columns([1, 2, 1])
     
-    library = st.session_state.library
-    
-    # --- SKAITYTOJO PRISIJUNGIMAS ---
-    with tab1:
-        with st.form("reader_login"):
-            card_id = st.text_input("Kortelės ID (pvz., AB1234)")
-            submit = st.form_submit_button("Prisijungti")
-            
-            if submit:
-                user = library.user_repository.get_by_id(card_id)
-                if user and user.role == 'reader':
-                    st.session_state.user = user
-                    st.rerun()
-                else:
-                    st.error("Neteisingas ID arba vartotojas nerastas.")
+    with col:
+        st.subheader("Prisijungimas")
+        
+        # Sukuriame skirtukus (Tabs)
+        tab_reader, tab_admin = st.tabs(["👤 Skaitytojas", "🛡️ Bibliotekininkas"])
+        
+        # --- 1. SKAITYTOJO PRISIJUNGIMAS ---
+        with tab_reader:
+            with st.form("reader_login"):
+                st.write("Įveskite savo vardą (arba ID):")
+                username = st.text_input("Vartotojo vardas")
+                submit_reader = st.form_submit_button("Prisijungti", type="primary")
+                
+                if submit_reader:
+                    if username:
+                        _perform_login(username, None) # Slaptažodis nereikalingas
+                    else:
+                        st.warning("Įveskite vardą.")
 
-    # --- ADMIN PRISIJUNGIMAS ---
-    with tab2:
-        with st.form("admin_login"):
-            username = st.text_input("Vartotojo vardas")
-            password = st.text_input("Slaptažodis", type="password")
-            submit = st.form_submit_button("Prisijungti")
-            
-            if submit:
-                user = library.auth_service.authenticate_librarian(username, password)
-                if user:
-                    st.session_state.user = user
-                    st.rerun()
-                else:
-                    st.error("Neteisingi prisijungimo duomenys.")
+        # --- 2. BIBLIOTEKININKO PRISIJUNGIMAS ---
+        with tab_admin:
+            with st.form("admin_login"):
+                st.write("Administracinė prieiga:")
+                admin_user = st.text_input("Vartotojo vardas")
+                admin_pass = st.text_input("Slaptažodis", type="password")
+                submit_admin = st.form_submit_button("Prisijungti", type="primary")
+                
+                if submit_admin:
+                    if admin_user and admin_pass:
+                        _perform_login(admin_user, admin_pass)
+                    else:
+                        st.warning("Įveskite abu laukus.")
+
+def _perform_login(username, password):
+    """
+    Vidinė funkcija atlikti prisijungimą per servisą.
+    """
+    # Kuriame servisą
+    auth_service = AuthService() # Jis pats susikurs UserRepository viduje
+    
+    # Bandome autentifikuoti
+    user = auth_service.authenticate(username, password)
+    
+    if user:
+        # Sėkmės atveju
+        st.session_state['user'] = user
+        st.session_state['role'] = user.role
+        
+        st.success(f"Sveiki sugrįžę, {user.username}!")
+        st.rerun()
+    else:
+        st.error("Neteisingi duomenys arba vartotojas nerastas.")
 
 def logout():
-    st.session_state.user = None
+    """Atsijungimo funkcija."""
+    if 'user' in st.session_state:
+        del st.session_state['user']
+    if 'role' in st.session_state:
+        del st.session_state['role']
     st.rerun()

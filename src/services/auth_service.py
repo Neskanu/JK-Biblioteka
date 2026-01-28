@@ -1,102 +1,65 @@
 """
 FILE: src/services/auth_service.py
-PURPOSE: Valdo vartotojų registraciją ir prisijungimą (Autentifikaciją).
+PURPOSE: Verslo logika vartotojų autentifikacijai.
 RELATIONSHIPS:
-  - Importuoja User modelį iš src/models.py.
-  - Naudoja UserRepository duomenų tikrinimui ir saugojimui.
+  - Naudoja src/repositories/user_repository.py.
 CONTEXT:
-  - Refaktorizuota: Naudoja vieningą 'User' modelį vietoje 'Librarian'/'Reader'.
+  - Pakeista: Skaitytojai (reader) autentifikuojami be slaptažodžio.
+  - Bibliotekininkai (librarian) privalo įvesti slaptažodį.
 """
 
-from src.models import User
-from src.utils import generate_card_id
+from src.repositories.user_repository import UserRepository
 
 class AuthService:
-    def __init__(self, user_repository):
-        self.repo = user_repository
+    def __init__(self, user_repository: UserRepository = None):
+        self.user_repo = user_repository or UserRepository()
 
-    def _validate_card_format(self, card_id):
-        """Patikrina, ar kodas atitinka formatą XX1111."""
-        card_id = card_id.upper()
-        if len(card_id) != 6:
-            return False, "Kodas turi būti lygiai 6 simbolių ilgio."
-        if not card_id[:2].isalpha():
-            return False, "Pirmieji du simboliai turi būti raidės (pvz. AB)."
-        if not card_id[2:].isdigit():
-            return False, "Paskutiniai 4 simboliai turi būti skaičiai (pvz. 1234)."
-        return True, ""
-    
-    def authenticate_librarian(self, username, password):
-        """Tikrina vartotojo duomenis ir ar jis yra bibliotekininkas."""
-        user = self.repo.get_by_username(username)
+    def authenticate(self, username, password=None):
+        """
+        Patikrina vartotojo duomenis.
+        - Jei rolė 'reader': slaptažodis ignoruojamas.
+        - Jei rolė 'librarian': slaptažodis privalomas.
+        """
+        user = self.user_repo.get_by_username(username)
         
         if not user:
             return None
-        
-        # Tikriname rolę
-        if user.role != 'librarian':
-            return None
             
-        # Tikriname slaptažodį (paprastas tekstas mokymosi tikslais)
-        if user.password == password:
+        # Logika pagal roles
+        if user.role == 'reader':
+            # Skaitytojams slaptažodžio nereikia
             return user
+            
+        elif user.role == 'librarian':
+            # Bibliotekininkams slaptažodis būtinas
+            if password and user.password == password:
+                return user
             
         return None
 
-    def register_librarian(self, username, password):
-        """Registruoja naują administratorių."""
-        if self.repo.get_by_username(username):
-            return False 
+    def register_user(self, username, password, role='reader'):
+        """
+        Registruoja naują vartotoją.
+        """
+        if self.user_repo.get_by_username(username):
+            return False, "Vartotojas tokiu vardu jau egzistuoja."
+            
+        from src.models import User
+        # Jei skaitytojas, password gali būti None (arba tuščias string),
+        # bet DB reikalauja, kad modelis atitiktų struktūrą.
+        new_user = User(username=username, password=password, role=role)
         
-        # Kuriame User objektą su role 'librarian'
-        new_admin = User(
-            username=username, 
-            role='librarian', 
-            password=password
-        )
-        self.repo.add(new_admin)
-        return True
-
-    def register_reader(self, username, card_id):
-        """Registruoja skaitytoją."""
-        card_id = card_id.strip().upper()
-
-        is_valid, error_msg = self._validate_card_format(card_id)
-        if not is_valid:
-            return False, error_msg
-
-        if self.repo.get_by_id(card_id):
-            return False, f"Kortelė {card_id} jau užregistruota sistemoje."
-
-        # Kuriame User objektą su role 'reader'
-        new_reader = User(
-            id=card_id,
-            username=username,
-            role="reader"
-        )
-        self.repo.add(new_reader)
-        
-        return True, f"Skaitytojas '{username}' sukurtas. Kortelė: {card_id}"
-    
-    def regenerate_card_id(self, reader, new_card_id):
-        """Pakeičia vartotojo kortelės ID (Primary Key keitimas)."""
-        new_card_id = new_card_id.strip().upper()
-
-        is_valid, error_msg = self._validate_card_format(new_card_id)
-        if not is_valid:
-            return False, error_msg
-
-        existing_user = self.repo.get_by_id(new_card_id)
-        if existing_user:
-            return False, f"Klaida: Kortelė {new_card_id} jau užimta."
-        
-        # DB atveju PK keitimas yra sudėtingas. 
-        # Paprasčiau: sukurti naują userį, perkelti paskolas, ištrinti seną.
-        # ARBA tiesiog atnaujinti ID (SQLAlchemy tai leidžia, jei DB palaiko CASCADE).
         try:
-            old_id = reader.id
-            reader.id = new_card_id
-            self.repo.update(reader)
-            return True, f"Kortelė pakeista. {old_id} -> {new_card_id}"
+            self.user_repo.add(new_user)
+            return True, "Vartotojas sėkmingai sukurtas."
         except Exception as e:
-            return False, f"Klaida keičiant ID: {e}"
+            return False, f"Klaida: {str(e)}"
+            
+    # Papildomi metodai specifinėms registracijoms (kad atitiktų admin_ui)
+    def register_reader(self, username, card_id):
+        # Admin UI naudoja kortelės ID, bet sistemoje tai dažnai tiesiog username
+        # Arba galime card_id įrašyti į username, arba į password lauką kaip identifikatorių
+        return self.register_user(username=username, password=None, role='reader')
+
+    def register_librarian(self, username, password):
+        return self.register_user(username=username, password=password, role='librarian')
