@@ -1,76 +1,65 @@
 """
 FILE: src/services/inventory_service.py
-PURPOSE: Valdo knygų fondą su SQL palaikymu.
+PURPOSE: Valdo knygų fondą su SQLAlchemy.
 RELATIONSHIPS:
-  - Kviečia BookRepository metodus (add, update, remove).
+  - Naudoja BookRepository.
+  - Importuoja Book modelį.
 CONTEXT:
-  - Perrašytas, kad nenaudotų failų perrašymo logikos.
+  - Atnaujinta dirbti su ORM objektais.
 """
 from datetime import datetime
 from src.models import Book
 import os
 import json
+import uuid
 
 class InventoryService:
     def __init__(self, book_repository):
         self.repo = book_repository
 
     def add_book(self, title, author, year, genre):
-        """
-        Prideda knygą arba atnaujina esamą (SQL UPDATE/INSERT).
-        """
         try:
             year_int = int(year)
         except ValueError:
             raise ValueError(f"Klaida: Metai turi būti skaičius, gauta: {year}")
 
-        # Validacija
         current_year = datetime.now().year
         if year_int > current_year + 1 or year_int < -1000:
             raise ValueError(f"Klaida: Netinkami metai {year_int}.")
 
-        # 1. Tikriname DB
+        # Tikriname ar knyga egzistuoja
         existing_book = self.repo.find_by_details(title, author)
         
         if existing_book:
-            # 2. Atnaujiname (UPDATE)
             existing_book.total_copies += 1
             existing_book.available_copies += 1
-            # Čia esminis skirtumas: kviečiame update(), o ne save()
             self.repo.update(existing_book)
-            print("DEBUG: Atnaujinta esama knyga (SQL).")
             return existing_book
         
-        # 3. Kuriame naują (INSERT)
-        new_book = Book(title=title, author=author, year=year_int, genre=genre)
-        # BookRepository.add atlieka INSERT
+        # Kuriame naują
+        new_book = Book(
+            title=title, 
+            author=author, 
+            year=year_int, 
+            genre=genre,
+            total_copies=1,
+            available_copies=1
+        )
         self.repo.add(new_book)
-        print("DEBUG: Įterpta nauja knyga (SQL).")
         return new_book
 
     def batch_delete(self, book_ids):
-        """
-        Masinis knygų šalinimas.
-        """
         deleted_count = 0
         for bid in book_ids:
-            # Kviečiame repo.remove, kuris iškart vykdo DELETE FROM
             if self.repo.remove(bid):
                 deleted_count += 1
-        
         return deleted_count
     
     def import_books_from_json(self, filepath):
-        """
-        Migracijos įrankis: Nuskaito JSON failą ir sukelia knygas į DB.
-        Svarbu: Išsaugo originalius ID iš JSON failo.
-        """
         if not os.path.exists(filepath):
             print(f"DEBUG: JSON failas nerastas: {filepath}")
             return 0
 
-        print(f"DEBUG: Pradedama migracija iš {filepath}...")
-        
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -81,15 +70,12 @@ class InventoryService:
         imported_count = 0
         
         for item in data:
-            # 1. Patikriname, ar knyga su tokiu ID jau yra DB
-            # (Kad nedubliuotume kaskart paleidus programą)
+            # Jei knyga su tokiu ID jau yra, praleidžiame
             if self.repo.get_by_id(item.get('id')):
                 continue
 
-            # 2. Sukuriame objektą naudodami duomenis iš JSON
-            # Svarbu: preserve ID from JSON!
             book = Book(
-                id=item.get('id'), # Svarbu: išsaugome seną UUID
+                id=item.get('id', str(uuid.uuid4())),
                 title=item['title'],
                 author=item['author'],
                 year=int(item['year']),
@@ -97,14 +83,7 @@ class InventoryService:
                 total_copies=item.get('total_copies', 1),
                 available_copies=item.get('available_copies', 1)
             )
-
-            # 3. Įrašome į DB tiesiogiai per repo
             self.repo.add(book)
             imported_count += 1
-
-        if imported_count > 0:
-            print(f"Sėkmingai migruota knygų: {imported_count}")
-        else:
-            print("Duomenų bazė jau užpildyta arba JSON failas tuščias.")
             
         return imported_count

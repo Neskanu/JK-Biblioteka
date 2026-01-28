@@ -1,110 +1,100 @@
 """
 FILE: src/repositories/user_repository.py
-PURPOSE: Valdo vartotojų duomenis su PyMySQL.
+PURPOSE: Atlieka CRUD operacijas su Vartotojais naudojant SQLAlchemy.
 RELATIONSHIPS:
   - Naudoja src/database.py.
-  - Tvarko Users ir Loans lenteles.
+  - Manipuliuoja src/models.py User ir Loan objektais.
+CONTEXT:
+  - Užtikrina 'eager loading' (joinedload) paskoloms, kad jos būtų pasiekiamos po sesijos uždarymo.
 """
 
-from src.database import get_connection
-from src.models import Librarian, Reader
+from sqlalchemy.orm import joinedload
+from src.database import SessionLocal
+from src.models import User, Loan
 
 class UserRepository:
     def __init__(self):
-        self.users = []
-        self.refresh_cache()
+        pass
 
-    def refresh_cache(self):
-        self.users = []
-        conn = get_connection()
-        try:
-            with conn.cursor() as cursor:
-                # 1. Visi vartotojai
-                cursor.execute("SELECT * FROM users")
-                users_data = cursor.fetchall()
-                
-                for u_row in users_data:
-                    if u_row['role'] == 'librarian':
-                        user = Librarian.from_dict(u_row)
-                    else:
-                        user = Reader.from_dict(u_row)
-                        user.active_loans = []
-                        
-                        # 2. Paskolos (atskira užklausa)
-                        # Galima optimizuoti naudojant vieną didelį JOIN, bet kol kas taip aiškiau
-                        cursor.execute("SELECT book_id, title, due_date FROM loans WHERE user_id = %s", (user.id,))
-                        loans = cursor.fetchall()
-                        
-                        for loan in loans:
-                            if loan['due_date']:
-                                loan['due_date'] = str(loan['due_date'])
-                            user.active_loans.append(loan)
-                    
-                    self.users.append(user)
-        finally:
-            conn.close()
+    @property
+    def users(self):
+        """Suderinamumo sluoksnis."""
+        return self.get_all()
 
     def get_all(self):
-        return self.users
+        session = SessionLocal()
+        try:
+            # options(joinedload(User.loans)) užtikrina, kad paskolos bus užkrautos kartu su vartotoju
+            return session.query(User).options(joinedload(User.loans)).all()
+        finally:
+            session.close()
 
     def get_by_id(self, user_id):
-        for user in self.users:
-            if user.id == user_id:
-                return user
-        return None
+        session = SessionLocal()
+        try:
+            return session.query(User).options(joinedload(User.loans)).filter(User.id == str(user_id)).first()
+        finally:
+            session.close()
     
     def get_by_username(self, username):
-        for user in self.users:
-            if user.username.lower() == username.lower():
-                return user
-        return None
+        session = SessionLocal()
+        try:
+            return session.query(User).options(joinedload(User.loans)).filter(User.username == username).first()
+        finally:
+            session.close()
 
     def add(self, user):
-        conn = get_connection()
+        session = SessionLocal()
         try:
-            with conn.cursor() as cursor:
-                pwd = getattr(user, 'password', None)
-                sql = "INSERT INTO users (id, username, role, password) VALUES (%s, %s, %s, %s)"
-                cursor.execute(sql, (user.id, user.username, user.role, pwd))
-            conn.commit()
-            self.users.append(user)
+            session.add(user)
+            session.commit()
+            return user
+        except Exception as e:
+            session.rollback()
+            raise e
         finally:
-            conn.close()
+            session.close()
 
     def save(self):
         """
-        Išsaugo vartotojo duomenis ir perrašo paskolas.
+        Suderinamumas. SQLAlchemy reikalauja explicityvaus commit.
+        Idealiu atveju, servisas turėtų kviesti 'update' metodą.
+        Bet jei modifikuojame objektą tiesiogiai, reikia sesijos.
+        
+        Laikinas sprendimas (Hack):
+        Kadangi senas kodas daro: user.something = x; repo.save()
+        Mums reikia 'merge' strategijos visiems vartotojams. Tai neefektyvu.
+        Geriau perrašyti Services, kad jie kviestų update(user).
         """
-        conn = get_connection()
+        pass
+        
+    def update(self, user):
+        """Atnaujina vartotojo duomenis."""
+        session = SessionLocal()
         try:
-            with conn.cursor() as cursor:
-                for user in self.users:
-                    # 1. Atnaujiname patį vartotoją
-                    pwd = getattr(user, 'password', None)
-                    cursor.execute(
-                        "UPDATE users SET username=%s, password=%s WHERE id=%s",
-                        (user.username, pwd, user.id)
-                    )
-                    
-                    # 2. Perrašome paskolas (Skaitytojams)
-                    if user.role == 'reader':
-                        cursor.execute("DELETE FROM loans WHERE user_id = %s", (user.id,))
-                        if user.active_loans:
-                            sql_loan = "INSERT INTO loans (user_id, book_id, title, due_date) VALUES (%s, %s, %s, %s)"
-                            loan_data = [(user.id, l['book_id'], l['title'], l['due_date']) for l in user.active_loans]
-                            cursor.executemany(sql_loan, loan_data)
-            conn.commit()
+            session.merge(user)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
         finally:
-            conn.close()
+            session.close()
 
     def remove(self, user):
-        conn = get_connection()
+        session = SessionLocal()
         try:
-            with conn.cursor() as cursor:
-                cursor.execute("DELETE FROM users WHERE id = %s", (user.id,))
-            conn.commit()
-            if user in self.users:
-                self.users.remove(user)
-            return True
+            # Reikia gauti objektą prijungtą prie šios sesijos
+            u = session.get(User, user.id)
+            if u:
+                session.delete(u)
+                session.commit()
+                return True
+            return False
+        except Exception:
+            session.rollback()
+            return False
         finally:
-            conn.close()
+            session.close()
+            
+    # Alias
+    delete_user_from_db = remove

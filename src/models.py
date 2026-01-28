@@ -1,51 +1,46 @@
 """
 FILE: src/models.py
-PURPOSE: Apibrėžia programos duomenų struktūras (Modelius).
+PURPOSE: Apibrėžia duomenų bazės lentelių struktūrą (ORM Modeliai).
+RELATIONSHIPS:
+  - Paveldi iš src/database.py -> Base.
+  - Apibrėžia ryšius tarp User, Book ir Loan.
 CONTEXT:
-  - Naudojame modernią Python biblioteką 'dataclasses'.
-  - Tai leidžia išvengti daug pasikartojančio kodo (boilerplate), kurį
-    tekdavo rašyti senesnėse Python versijose (pvz., __init__ metodus).
+  - Pakeista iš paprastų dataclasses į SQLAlchemy modelius.
+  - Pridėti Foreign Keys ir Relationships.
 """
 
 import uuid
-from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from sqlalchemy import Column, String, Integer, ForeignKey, Date
+from sqlalchemy.orm import relationship
+from src.database import Base
 
-# @dataclass yra "dekoratorius". Jis automatiškai sugeneruoja klasei metodus:
-# __init__() - konstruktorių
-# __repr__() - gražų atvaizdavimą spausdinant (print)
-# __eq__() - objektų palyginimą
-@dataclass
-class Book:
+def generate_uuid():
+    """Generuoja unikalų ID kaip string."""
+    return str(uuid.uuid4())
+
+class Book(Base):
     """
-    Modelis, atstovaujantis vieną knygą.
+    Atstovauja 'books' lentelę.
     """
-    # Type Hinting (Tipų sufleriai): 'title: str' sako, kad laukas turi būti tekstas.
-    # Tai netikrina tipų vykdymo metu, bet padeda programuotojams ir IDE.
-    title: str
-    author: str
-    year: int
-    genre: str
-    
-    # Numatomosios reikšmės (Default values):
-    # Jei kuriant objektą nenurodysime šių reikšmių, jos bus lygios 1.
-    total_copies: int = 1
-    available_copies: int = 1
-    
-    # field(default_factory=...) naudojame, kai norime dinaminės numatytosios reikšmės.
-    # Jei rašytume tiesiog 'id: str = str(uuid.uuid4())', visiems objektams ID būtų tas pats!
-    # Lambda funkcija užtikrina, kad kaskart kuriant naują knygą, sugeneruojamas NAUJAS kodas.
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    __tablename__ = "books"
 
-    def __str__(self) -> str:
-        """Vartotojui draugiškas atvaizdavimas (naudojamas spausdinant meniu)."""
-        return f"{self.title} - {self.author} | Laisva: {self.available_copies}/{self.total_copies}"
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    title = Column(String(255), nullable=False)
+    author = Column(String(255), nullable=False)
+    year = Column(Integer, nullable=True)
+    genre = Column(String(100), nullable=True)
+    total_copies = Column(Integer, default=1)
+    available_copies = Column(Integer, default=1)
 
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Serializacija: Objektas -> Žodynas (dict).
-        Reikalinga, norint išsaugoti duomenis į JSON failą.
-        """
+    # Ryšys su Loan lentele (vienas-su-daugeliu)
+    # cascade="all, delete" reiškia, kad ištrynus knygą, dings ir jos istorija (paskolos)
+    loans = relationship("Loan", back_populates="book", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Book(title='{self.title}', available={self.available_copies})>"
+    
+    def to_dict(self):
+        """Serializacija UI atvaizdavimui (suderinamumas su senu kodu)."""
         return {
             "id": self.id,
             "title": self.title,
@@ -56,96 +51,64 @@ class Book:
             "available_copies": self.available_copies
         }
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Book':
-        """
-        Deserializacija: Žodynas -> Objektas.
-        Reikalinga, skaitant duomenis iš JSON failo.
-        """
-        return cls(
-            title=data["title"],
-            author=data["author"],
-            year=int(data["year"]), # Užtikriname, kad metai būtų skaičius
-            genre=data["genre"],
-            total_copies=data.get("total_copies", 1),
-            available_copies=data.get("available_copies", 1),
-            id=data.get("id", str(uuid.uuid4())) # Jei JSON faile nėra ID, sukuriame naują
-        )
 
-# --- Vartotojų Modeliai ---
-
-@dataclass
-class User:
+class User(Base):
     """
-    Bazinė vartotojo klasė.
-    Kitos klasės (Librarian, Reader) paveldės šiuos laukus.
+    Atstovauja 'users' lentelę. 
+    Apjungia tiek Reader, tiek Librarian logiką vienoje lentelėje.
     """
-    username: str
-    role: str
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    __tablename__ = "users"
 
-    def to_dict(self) -> Dict[str, Any]:
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    username = Column(String(255), nullable=False)
+    role = Column(String(50), nullable=False) # 'reader' arba 'librarian'
+    password = Column(String(255), nullable=True) # Tik bibliotekininkams
+
+    # Ryšys: Vartotojas gali turėti daug paskolų
+    loans = relationship("Loan", back_populates="user", cascade="all, delete-orphan")
+    
+    # Šis property reikalingas senam kodui, kuris tikisi `active_loans` sąrašo
+    @property
+    def active_loans(self):
+        # Grąžina paskolų sąrašą (objektus)
+        return self.loans
+
+    def __repr__(self):
+        return f"<User(username='{self.username}', role='{self.role}')>"
+
+    def to_dict(self):
+        """Suderinamumas su UI."""
         return {
             "id": self.id,
             "username": self.username,
-            "role": self.role
+            "role": self.role,
+            # active_loans čia neįtraukiame tiesiogiai, kad neapkrautume JSON, 
+            # nebent reikia specifinėse vietose.
         }
 
-@dataclass
-class Librarian(User):
+
+class Loan(Base):
     """
-    Bibliotekininkas (Admin).
-    Paveldi 'username', 'role' ir 'id' iš User klasės.
+    Atstovauja 'loans' lentelę (jungiamoji lentelė).
+    Saugo informaciją apie pasiskolinimą.
     """
-    password: str = ""
+    __tablename__ = "loans"
 
-    def __post_init__(self):
-        """
-        Šis specialus metodas dataclasses veikia KAIP konstruktoriaus pabaiga.
-        Čia mes 'kietai' nustatome rolę, kad ji visada būtų 'librarian'.
-        """
-        self.role = "librarian"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    book_id = Column(String(36), ForeignKey("books.id"), nullable=False)
+    
+    # Denormalizacija: Saugome pavadinimą, kad nereikėtų visada join'inti, 
+    # arba paliekame tuščią ir pasitikime 'book' relationship.
+    # Senas kodas naudojo 'title', todėl paliekame suderinamumui.
+    title = Column(String(255), nullable=True) 
+    
+    due_date = Column(String(20), nullable=False) # Paprastumo dėlei saugome kaip tekstą YYYY-MM-DD
 
-    def to_dict(self) -> Dict[str, Any]:
-        # Paimame bazinį žodyną iš tėvinės klasės (User)
-        data = super().to_dict()
-        # Pridedame specifinį lauką
-        data["password"] = self.password
-        return data
+    # ORM Ryšiai
+    user = relationship("User", back_populates="loans")
+    book = relationship("Book", back_populates="loans")
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Librarian':
-        return cls(
-            id=data["id"],
-            username=data["username"],
-            role="librarian",
-            password=data["password"]
-        )
-
-@dataclass
-class Reader(User):
-    """
-    Skaitytojas.
-    Turi papildomą sąrašą 'active_loans' pasiskolintoms knygoms.
-    """
-    # DĖMESIO: Sąrašams (list) negalima naudoti 'active_loans = []', nes tada
-    # visi skaitytojai dalinsis TUO PAČIU sąrašu (Python nuorodų specifika).
-    # field(default_factory=list) sukuria naują tuščią sąrašą kiekvienam objektui.
-    active_loans: List[Dict[str, str]] = field(default_factory=list)
-
-    def __post_init__(self):
-        self.role = "reader"
-
-    def to_dict(self) -> Dict[str, Any]:
-        data = super().to_dict()
-        data["active_loans"] = self.active_loans
-        return data
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Reader':
-        return cls(
-            id=data["id"],
-            username=data["username"],
-            role="reader",
-            active_loans=data.get("active_loans", [])
-        )
+    def __getitem__(self, key):
+        """Leidžia pasiekti atributus kaip žodyną (loan['title']), reikalinga senam UI kodui."""
+        return getattr(self, key)

@@ -1,128 +1,125 @@
 """
 FILE: src/services/loan_service.py
-PURPOSE: Valdo knygų skolinimo verslo logiką.
+PURPOSE: Valdo knygų skolinimo verslo logiką su SQLAlchemy.
 RELATIONSHIPS:
   - Naudoja BookRepository ir UserRepository.
-  - Tikrina taisykles (MAX_BOOKS, available_copies).
+  - Kuria Loan objektus.
 CONTEXT:
-  - PRIDĖTA: Detalus klaidų (debug) spausdinimas į konsolę.
-  - PATAISYTA: Užtikrinamas suderinamumas su SQL UserRepository struktūra.
+  - Atnaujinta: Dabar aiškiai išsaugo Loan objektus į 'loans' lentelę per ORM.
 """
 
 from datetime import datetime, timedelta
 from src.config import LOAN_PERIOD_DAYS, MAX_BOOKS_PER_USER
+from src.models import Loan
 
 class LoanService:
     def __init__(self, book_repo, user_repo):
         self.book_repo = book_repo
         self.user_repo = user_repo
 
-    def borrow_book(self, user, book_id):
-        """
-        Bando paskolinti knygą vartotojui.
-        Grąžina: (bool, str) -> (sėkmė, žinutė)
-        """
-        try:
-            print(f"DEBUG: Pradedamas knygos paėmimas. User: {user.username}, BookID: {book_id}")
+    def borrow_book(self, user_id, book_id):
+        # PASTABA: Priimame ID, ne objektus, kad gautume šviežius duomenis
+        book = self.book_repo.get_by_id(book_id)
+        user = self.user_repo.get_by_id(user_id)
 
-            # 1. Patikriname knygą
-            book = self.book_repo.get_by_id(book_id)
-            if not book:
-                print("DEBUG: Knyga nerasta.")
-                return False, "Knyga nerasta sistemoje."
+        if not book:
+            return False, "Knyga nerasta."
+        if not user:
+            return False, "Vartotojas nerastas."
 
-            print(f"DEBUG: Knyga rasta: {book.title}. Laisvų kopijų: {book.available_copies}")
-
-            # 2. Patikriname, ar yra laisvų kopijų
-            if book.available_copies <= 0:
-                return False, "Šiuo metu visos knygos kopijos yra užimtos."
-
-            # 3. Patikriname vartotojo limitus
-            # user.active_loans gali būti None, jei tai naujas objektas iš DB
-            if not hasattr(user, 'active_loans') or user.active_loans is None:
-                user.active_loans = []
-
-            print(f"DEBUG: Vartotojas turi {len(user.active_loans)} aktyvių paskolų.")
-
-            if len(user.active_loans) >= MAX_BOOKS_PER_USER:
-                return False, f"Pasiektas maksimalus ({MAX_BOOKS_PER_USER}) pasiskolintų knygų limitas."
-
-            # 4. Patikriname, ar jau neturi šios knygos
-            for loan in user.active_loans:
-                # SQL repozitorija grąžina 'book_id', JSON galbūt seniau naudojo ką kitą
-                loan_book_id = loan.get('book_id')
-                # Konvertuojame į string palyginimui, nes ID formatai gali skirtis
-                if str(loan_book_id) == str(book_id):
-                    return False, "Jūs jau turite pasiskolinę šią knygą."
-
-            # 5. Vykdome skolinimą
-            due_date = datetime.now() + timedelta(days=LOAN_PERIOD_DAYS)
-            due_date_str = due_date.strftime("%Y-%m-%d")
-
-            # Sukuriame įrašą. SVARBU: Raktai turi atitikti UserRepository.save() SQL logiką
-            new_loan = {
-                'book_id': str(book.id),
-                'title': book.title,
-                'due_date': due_date_str
-            }
-
-            # Atnaujiname objektus atmintyje
-            user.active_loans.append(new_loan)
-            book.available_copies -= 1
-
-            print("DEBUG: Objektai atmintyje atnaujinti. Bandoma saugoti į DB...")
-
-            # 6. Saugome į DB
-            # Svarbu: Kviečiame save() abiems repozitorijoms
-            self.book_repo.save()
-            print("DEBUG: Knygų repozitorija išsaugota.")
+        # 1. Patikrinimai
+        if book.available_copies <= 0:
+            return False, "Nėra laisvų kopijų."
+        
+        if len(user.loans) >= MAX_BOOKS_PER_USER:
+            return False, "Pasiektas limitas."
             
-            self.user_repo.save()
-            print("DEBUG: Vartotojų repozitorija išsaugota.")
+        for loan in user.loans:
+            if str(loan.book_id) == str(book.id):
+                return False, "Jau turite šią knygą."
 
-            return True, f"Knyga '{book.title}' sėkmingai išduota iki {due_date_str}."
-
+        # 2. Skolinimo veiksmas
+        due_date = (datetime.now() + timedelta(days=LOAN_PERIOD_DAYS)).strftime("%Y-%m-%d")
+        
+        # Kuriame naują Loan ORM objektą
+        new_loan = Loan(
+            user_id=user.id,
+            book_id=book.id,
+            title=book.title,
+            due_date=due_date
+        )
+        
+        # Modifikuojame knygą
+        book.available_copies -= 1
+        
+        # 3. Išsaugojimas
+        # Kadangi User.loans turi 'cascade=all', užtenka pridėti paskolą prie vartotojo
+        # ir atnaujinti vartotoją (arba tiesiog pridėti loan į sesiją).
+        # Tačiau saugiausia atnaujinti per repozitorijas.
+        
+        try:
+            # Pridedame paskolą prie vartotojo sąrašo (SQLAlchemy tai suseks)
+            user.loans.append(new_loan)
+            
+            # Atnaujiname vartotoją (tai išsaugos ir naują Loan dėl cascade)
+            self.user_repo.update(user)
+            
+            # Atnaujiname knygos kiekį
+            self.book_repo.update(book)
+            
+            return True, f"Knyga '{book.title}' išduota iki {due_date}."
+            
         except Exception as e:
-            # Čia pamatysime tikrąją SQL klaidą terminale
-            import traceback
-            traceback.print_exc()
-            print(f"CRITICAL ERROR in borrow_book: {e}")
-            return False, f"Sistemos klaida: {str(e)}"
+            return False, f"DB Klaida: {str(e)}"
 
-    def return_book(self, user, book_id):
-        """
-        Grąžina knygą.
-        """
+    def return_book(self, user_id, book_id):
+        user = self.user_repo.get_by_id(user_id)
+        
+        if not user:
+            return False, "Vartotojas nerastas."
+
+        loan_to_remove = None
+        for loan in user.loans:
+            if str(loan.book_id) == str(book_id):
+                loan_to_remove = loan
+                break
+        
+        if not loan_to_remove:
+            return False, "Knyga nėra pasiskolinta."
+
         try:
-            print(f"DEBUG: Bandoma grąžinti knygą {book_id} vartotojui {user.username}")
-            
-            # Randame paskolą
-            loan_to_remove = None
-            for loan in user.active_loans:
-                if str(loan.get('book_id')) == str(book_id):
-                    loan_to_remove = loan
-                    break
-            
-            if not loan_to_remove:
-                return False, "Ši knyga nėra pasiskolinta jūsų vardu."
+            # Pašaliname paskolą iš sąrašo (SQLAlchemy pažymės trynimui)
+            user.loans.remove(loan_to_remove)
+            self.user_repo.update(user)
 
-            # Randame knygą, kad padidintume kiekį
+            # Atnaujiname knygą
             book = self.book_repo.get_by_id(book_id)
             if book:
                 book.available_copies += 1
-            else:
-                # Knyga galėjo būti ištrinta iš sistemos, bet vis tiek leidžiame vartotojui "grąžinti"
-                print("DEBUG: Grąžinama knyga, kurios nebėra books lentelėje.")
-
-            # Pašaliname iš vartotojo sąrašo
-            user.active_loans.remove(loan_to_remove)
-
-            # Saugome pakeitimus
-            self.book_repo.save()
-            self.user_repo.save()
-
-            return True, "Knyga sėkmingai grąžinta."
-
+                self.book_repo.update(book)
+            
+            return True, "Knyga grąžinta."
         except Exception as e:
-            print(f"CRITICAL ERROR in return_book: {e}")
             return False, f"Grąžinimo klaida: {str(e)}"
+            
+    def return_all_books(self, user_id):
+        user = self.user_repo.get_by_id(user_id)
+        if not user or not user.loans:
+            return False, "Nėra ką grąžinti."
+            
+        count = 0
+        try:
+            # Kuriame kopiją iteravimui, nes modifikuosime sąrašą
+            for loan in list(user.loans):
+                book = self.book_repo.get_by_id(loan.book_id)
+                if book:
+                    book.available_copies += 1
+                    self.book_repo.update(book)
+                
+                user.loans.remove(loan)
+                count += 1
+            
+            self.user_repo.update(user)
+            return True, f"Grąžinta knygų: {count}"
+        except Exception as e:
+            return False, f"Klaida: {str(e)}"

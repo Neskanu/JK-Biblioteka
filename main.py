@@ -5,7 +5,6 @@ from src.ui.librarian import main_menu as librarian_ui
 from src.ui.reader import main_menu as reader_ui
 from src.ui.common import pause, clear_screen
 from src.ui.ascii_styler import draw_ascii_menu, print_header
-from src.config import BOOKS_FILENAME # Importuojame failo pavadinimą
 from src.data_manager import get_data_file_path # Pagalbinė funkcija keliui gauti
 from src.database import initialize_db  # <--- DB importas
 
@@ -21,17 +20,8 @@ def bootstrap_system():
         library.auth_service.register_librarian("admin", "admin")
         print("Prisijungimas -> Vartotojas: admin, Slaptažodis: admin")
 
-def run_migration():
-    """Patikrina ir paleidžia duomenų importą."""
-    # Gauname pilną kelią iki 'data/books.json'
-    json_path = get_data_file_path(BOOKS_FILENAME)
-    
-    # Kviečiame naują serviso funkciją
-    library.inventory_service.import_books_from_json(json_path)
-
 def main():
     initialize_db()
-    run_migration()
     bootstrap_system()
     
     while True:
