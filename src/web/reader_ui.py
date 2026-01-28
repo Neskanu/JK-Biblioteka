@@ -1,11 +1,14 @@
 """
-FILE: src/web/reader_ui.py
-PURPOSE: Skaitytojo sąsaja su patobulintu klaidų valdymu.
-RELATIONSHIPS:
-  - Naudoja pandas duomenų atvaizdavimui.
-  - Kviekia library.borrow_book ir library.return_book.
-CONTEXT:
-  - PRIDĖTA: Detalus klaidų atvaizdavimas ir Debug informacija nesėkmės atveju.
+FAILAS: src/web/reader_ui.py
+PASKIRTIS: Skaitytojo vartotojo sąsaja (UI) knygų katalogui ir asmeninei bibliotekai.
+RYŠIAI:
+  - Importuoja auth.logout sesijos valdymui.
+  - Naudoja Library fasadą (library.borrow_book, library.return_book).
+  - Atvaizduoja duomenis naudojant Pandas ir Streamlit.
+KONTEKSTAS:
+  - PATAISYMAS (V3): Sutvarkytas '_render_my_books' duomenų paruošimas.
+    Pašalintas 'l.__dict__', kuris įtraukdavo '_sa_instance_state' ir gadino 'data_editor' veikimą.
+    Dabar duomenys lentelėje yra "švarūs", todėl mygtukas "Grąžinti" veikia korektiškai.
 """
 
 import streamlit as st
@@ -14,6 +17,10 @@ import time
 from src.web.auth import logout
 
 def render_dashboard():
+    """
+    Pagrindinė funkcija, inicijuojanti skaitytojo skydelį.
+    Nustato šoninį meniu ir nukreipia į atitinkamą vaizdą.
+    """
     library = st.session_state.library
     user = st.session_state.user
     
@@ -31,29 +38,36 @@ def render_dashboard():
         _render_my_books(library, user)
 
 def _render_catalog(library, user):
+    """
+    Atvaizduoja visų knygų sąrašą su paieška ir galimybe pasiskolinti.
+    """
     st.header("🔎 Knygų Katalogas")
     
-    # Visada gauname naujausius duomenis iš DB
-    library.book_repository.refresh_cache() 
     books = library.book_repository.get_all()
     
     if not books:
         st.warning("Biblioteka tuščia.")
         return
 
+    # Konvertuojame objektus į dict sąrašą
     data = []
     for b in books:
+        # Book modelis turi to_dict metodą, todėl čia viskas gerai
         row = b.to_dict()
         row['Pasirinkti'] = False
         row['Likutis'] = f"{b.available_copies}/{b.total_copies}"
         data.append(row)
 
     df = pd.DataFrame(data)
+
+    # Paieška
     search = st.text_input("🔍 Paieška")
     if search:
         df = df[df['title'].str.contains(search, case=False) | df['author'].str.contains(search, case=False)]
 
     st.caption("Pažymėkite knygas norėdami pasiimti 👇")
+    
+    # Interaktyvi lentelė
     edited = st.data_editor(
         df, key="cat_ed", width="stretch",
         column_config={
@@ -73,68 +87,78 @@ def _render_catalog(library, user):
     
     if not selected.empty:
         if st.button(f"Pasiimti ({len(selected)})", type="primary"):
-            successes = []
-            errors = []
+            _process_borrowing(library, user, selected)
+
+def _process_borrowing(library, user, selected_df):
+    """
+    Apdoroja knygų paėmimą.
+    """
+    successes = []
+    errors = []
+    
+    progress_bar = st.progress(0)
+    total = len(selected_df)
+
+    for idx, (_, row) in enumerate(selected_df.iterrows()):
+        try:
+            # Perduodame user.id, o ne visą user objektą
+            success, message = library.borrow_book(user.id, row['id'])
             
-            progress_bar = st.progress(0)
-            total = len(selected)
+            if success:
+                successes.append(f"✅ {row['title']}: {message}")
+            else:
+                errors.append(f"❌ {row['title']}: {message}")
+        except Exception as e:
+            errors.append(f"💥 {row['title']}: Kritinė klaida - {str(e)}")
+        
+        progress_bar.progress((idx + 1) / total)
 
-            for idx, (_, row) in enumerate(selected.iterrows()):
-                # Iškviečiame logiką ir gauname žinutę
-                # Pastaba: library.borrow_book turi priimti user_id arba user objektą
-                try:
-                    success, message = library.borrow_book(user, row['id'])
-                    
-                    if success:
-                        successes.append(f"✅ {row['title']}: {message}")
-                    else:
-                        errors.append(f"❌ {row['title']}: {message}")
-                except Exception as e:
-                    errors.append(f"💥 {row['title']}: Kritinė klaida - {str(e)}")
-                
-                progress_bar.progress((idx + 1) / total)
+    if successes:
+        st.success(f"Sėkmingai paimta: {len(successes)}")
+        for s in successes: st.write(s)
+    
+    if errors:
+        st.error(f"Nepavyko paimti: {len(errors)}")
+        for e in errors: st.write(e)
 
-            # Rezultatų atvaizdavimas
-            if successes:
-                st.success(f"Sėkmingai paimta: {len(successes)}")
-                for s in successes:
-                    st.write(s)
-            
-            if errors:
-                st.error(f"Nepavyko paimti: {len(errors)}")
-                for e in errors:
-                    st.write(e)
-                
-                # --- DEBUG INFO ---
-                # with st.expander("Techninė informacija (Debug)"):
-                #     st.write("Vartotojo ID:", user.id)
-                #     st.write("Bandyta imti:", selected[['id', 'title']].to_dict('records'))
-                #     st.write("Session State User:", vars(user))
-
-            # Perkrauname tik jei viskas pavyko, kitaip paliekame klaidą ekrane
-            if not errors and successes:
-                time.sleep(1.5)
-                st.rerun()
+    if not errors and successes:
+        time.sleep(1.5)
+        st.rerun()
 
 def _render_my_books(library, user):
+    """
+    Atvaizduoja vartotojo turimas knygas.
+    """
     st.header("📚 Mano Knygos")
     
-    # Atnaujiname vartotojo duomenis iš DB, kad matytume tikras paskolas
-    # (nes session_state.user gali būti pasenęs)
+    # Gauname naujausius duomenis iš DB
     current_user = library.user_repository.get_by_id(user.id)
     
     if not current_user or not current_user.active_loans:
         st.info("Neturite pasiėmę knygų.")
         return
 
+    # --- PATAISYMAS ČIA ---
     data = []
     for l in current_user.active_loans:
-        # Užtikriname, kad turime dict (SQL grąžina dict, bet kartais objektus)
-        r = l.copy() if isinstance(l, dict) else l.__dict__.copy()
-        r['Grąžinti'] = False
-        data.append(r)
+        # Saugiai ištraukiame duomenis. 
+        # Loan objektas neturi 'to_dict', o '__dict__' naudoti negalima dėl SQLAlchemy vidinių duomenų.
+        if isinstance(l, dict):
+            row = l.copy()
+        else:
+            # Rankiniu būdu surenkame tik reikalingus laukus
+            row = {
+                "book_id": l.book_id,
+                "title": l.title,
+                "due_date": l.due_date
+            }
+        
+        row['Grąžinti'] = False
+        data.append(row)
+    # ----------------------
     
     df = pd.DataFrame(data)
+    
     edited = st.data_editor(
         df, key="my_ed", width="stretch",
         column_config={
@@ -148,28 +172,37 @@ def _render_my_books(library, user):
     )
 
     to_return = edited[edited['Grąžinti'] == True]
+    
     if not to_return.empty:
         if st.button(f"Grąžinti ({len(to_return)})", type="primary"):
-            successes = []
-            errors = []
+            _process_returning(library, current_user, to_return)
 
-            for _, row in to_return.iterrows():
-                try:
-                    success, message = library.return_book(current_user, row['book_id'])
-                    if success:
-                        successes.append(f"✅ {row.get('title', 'Knyga')}")
-                    else:
-                        errors.append(f"❌ {row.get('title', 'Knyga')}: {message}")
-                except Exception as e:
-                     errors.append(f"💥 Kritinė klaida grąžinant ID {row.get('book_id')}: {e}")
+def _process_returning(library, user, return_df):
+    """
+    Apdoroja knygų grąžinimą.
+    """
+    successes = []
+    errors = []
 
-            if successes:
-                st.success(f"Grąžinta: {len(successes)}")
+    for _, row in return_df.iterrows():
+        try:
+            # Perduodame user.id, o ne visą user objektą
+            success, message = library.return_book(user.id, row['book_id'])
             
-            if errors:
-                st.error("Klaidos grąžinant knygas:")
-                for e in errors:
-                    st.write(e)
+            title = row.get('title', 'Knyga')
+            if success:
+                successes.append(f"✅ {title}")
             else:
-                time.sleep(1)
-                st.rerun()
+                errors.append(f"❌ {title}: {message}")
+        except Exception as e:
+                errors.append(f"💥 Kritinė klaida grąžinant ID {row.get('book_id')}: {e}")
+
+    if successes:
+        st.success(f"Grąžinta: {len(successes)}")
+    
+    if errors:
+        st.error("Klaidos grąžinant knygas:")
+        for e in errors: st.write(e)
+    else:
+        time.sleep(1)
+        st.rerun()

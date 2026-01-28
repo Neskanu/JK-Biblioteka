@@ -5,14 +5,15 @@ RELATIONSHIPS:
   - Kviečiamas iš app.py.
   - Naudoja Library klasę duomenų manipuliavimui.
 CONTEXT:
-  - Atnaujinta: Knygų kiekio keitimo logika (Total vs Available sinchronizacija).
-  - Apsauga: Neleidžia sumažinti bendro kiekio žemiau paskolinto kiekio.
+  - Pataisymas: Masinis trynimas dabar naudoja 'safe_delete_book' ciklą vietoje 'batch_delete'.
+  - Pataisymas: Vartotojui rodoma detali ataskaita, kodėl konkrečios knygos nebuvo ištrintos.
 """
 
 import streamlit as st # sukuria web UI
 import pandas as pd # duomenų lentelėms
 import plotly.express as px # diagramoms
 import uuid # unikalių ID knygoms generavimui
+import time # laikas
 from datetime import datetime # datos valdymui
 
 from src.models import Book # knygų modelis reikalingas naujos knygos sukūrimui
@@ -25,7 +26,9 @@ def render_dashboard(library):
         
         st.divider()
         st.caption(f"Viso vartotojų: {len(library.user_repository.get_all())}")
-        total_books = sum(b.total_copies for b in library.book_repository.books)
+        # Optimizacija: nenaudojame sum(), jei tai lėta, bet kol kas tinka
+        all_books = library.book_repository.get_all()
+        total_books = sum(b.total_copies for b in all_books)
         st.caption(f"Viso knygų: {total_books}")
 
         st.divider()
@@ -93,7 +96,7 @@ def _render_users_view(library):
         })
     df = pd.DataFrame(user_data)
     
-    # ID naudojame kaip indeksą, kad paslėptume jį vaizde
+    # ID naudojame kaip indeksą
     df.set_index("id", inplace=True)
     
     st.write("Paspauskite ant eilutės redagavimui:")
@@ -107,9 +110,6 @@ def _render_users_view(library):
 
     # C. REDAGAVIMAS
     if selection.selection.rows:
-        # Paimame objektą pagal ID (kuris dabar yra indeksas)
-        # selection.selection.rows grąžina eilučių numerius (0, 1, 2...)
-        # Mums reikia susieti eilutės numerį su vartotojų sąrašu
         selected_row_idx = selection.selection.rows[0]
         selected_user = users[selected_row_idx]
 
@@ -157,12 +157,17 @@ def _render_users_view(library):
                     for loan in selected_user.active_loans:
                         bc, ac = st.columns([4, 1])
                         with bc:
-                            st.text(f"📖 {loan['title']} (Iki: {loan['due_date']})")
+                            # Saugus duomenų gavimas
+                            title = loan['title'] if isinstance(loan, dict) else loan.title
+                            due = loan['due_date'] if isinstance(loan, dict) else loan.due_date
+                            bid = loan['book_id'] if isinstance(loan, dict) else loan.book_id
+                            
+                            st.text(f"📖 {title} (Iki: {due})")
                         with ac:
-                            if st.button("Grąžinti", key=f"ret_{selected_user.id}_{loan['book_id']}"):
-                                success, msg = library.return_book(selected_user.id, loan['book_id'])
+                            if st.button("Grąžinti", key=f"ret_{selected_user.id}_{bid}"):
+                                success, msg = library.return_book(selected_user.id, bid)
                                 if success:
-                                    st.success(f"Grąžinta: {loan['title']}")
+                                    st.success(f"Grąžinta: {title}")
                                     st.rerun()
                                 else:
                                     st.error(msg)
@@ -171,9 +176,8 @@ def _render_users_view(library):
 
 def _render_books_view(library):
     """Knygų valdymas: Pridėjimas, Redagavimas, Trynimas."""
-    # Patikriname, ar nėra "atidėtos" žinutės iš praeito paspaudimo
-
-    # --- 0. NAUJOS KNYGOS PRIDĖJIMAS (NAUJA DALIS) ---
+    
+    # --- 0. NAUJOS KNYGOS PRIDĖJIMAS ---
     with st.expander("➕ Pridėti naują knygą", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
@@ -188,142 +192,118 @@ def _render_books_view(library):
         if st.button("Išsaugoti knygą"):
             if new_title and new_author:
                 try:
-                    # 1. Sugeneruojame unikalų ID
-                    new_id = uuid.uuid4().hex[:8].upper()
-                    
-                    # 2. Bandome pridėti knygą per servisą
-                    # Svarbu: perduodame atskirus duomenis, o ne objektą, 
-                    # nes servisas pats atlieka validaciją ir kūrimą.
                     library.inventory_service.add_book(
                         title=new_title,
                         author=new_author,
                         year=new_year,
                         genre=new_genre
                     )
-                    
-                    # 3. Jei klaidų nebuvo - rodome sėkmę
-                    st.success(f"Knyga '{new_title}' sėkmingai pridėta! (ID: {new_id})")
-                                        
-                except ValueError as e:
-                    # Čia pagauname Jūsų sukurtą klaidą iš inventory_service
-                    # pvz.: "Knygos metai negali būti ateityje"
-                    st.error(str(e))
-                    
+                    st.success(f"Knyga '{new_title}' sėkmingai pridėta!")
                 except Exception as e:
-                    # Apsauga nuo bet kokių kitų nenumatytų klaidų
-                    st.error(f"Įvyko nenumatyta klaida: {e}")
-                    
+                    st.error(f"Klaida: {e}")
             else:
                 st.warning("Privaloma įvesti pavadinimą ir autorių.")
 
     # --- 1. MASINIO TRYNIMO ĮRANKIAI ---
     with st.expander("🗑️ Masinis Knygų Nurašymas"):
+        st.info("Pastaba: Sistema neleis ištrinti knygų, kurios yra paskolintos skaitytojams.")
+        
         tab_list, tab_year, tab_author, tab_genre = st.tabs(["Pagal ID sąrašą", "Pagal metus", "Pagal Autorių", "Pagal Žanrą"])
         
-        # ... (Ši dalis lieka tokia pati kaip anksčiau) ...
-        # (Taupydamas vietą, jos nekartoju, jei turite seną kodą. Jei reikia - sakykite)
-        # Svarbiausia, kad viršuje atsirado "Pridėti naują knygą".
-        
+        # Helper function to process deletion list safely and show report
+        def process_bulk_deletion(books_to_process):
+            deleted_count = 0
+            errors = []
+            
+            progress_bar = st.progress(0)
+            total = len(books_to_process)
+            
+            for idx, book in enumerate(books_to_process):
+                # Naudojame safe_delete_book, kuris grąžina (True/False, Žinutė)
+                success, msg = library.safe_delete_book(book)
+                
+                if success:
+                    deleted_count += 1
+                else:
+                    errors.append(f"❌ '{book.title}': {msg}")
+                
+                progress_bar.progress((idx + 1) / total)
+            
+            # Ataskaita
+            if deleted_count > 0:
+                st.success(f"✅ Sėkmingai ištrinta knygų: {deleted_count}")
+            
+            if errors:
+                st.error(f"⚠️ Nepavyko ištrinti: {len(errors)} knygų")
+                with st.expander("Peržiūrėti klaidas (Kodėl neišsitrynė?)", expanded=True):
+                    for err in errors:
+                        st.write(err)
+            
+            if deleted_count > 0:
+                time.sleep(2)
+                st.rerun()
+
         # A. Pagal ID sąrašą
         with tab_list:
             ids_input = st.text_area("ID sąrašas (kiekvienas naujoje eilutėje)", height=100)
             if st.button("Trinti pagal ID", type="primary"):
                 if ids_input.strip():
                     id_list = [line.strip() for line in ids_input.split('\n') if line.strip()]
-                    books_to_delete, skipped = [], []
+                    candidates = []
                     for bid in id_list:
                         book = library.book_repository.get_by_id(bid)
                         if book:
-                            s, m = library.safe_delete_book(book)
-                            if s: books_to_delete.append(book) # Tik vizualizacijai, nes safe_delete jau ištrynė
-                            else: skipped.append(bid)
+                            candidates.append(book)
+                        else:
+                            st.warning(f"ID nerastas: {bid}")
                     
-                    if books_to_delete: st.success(f"Ištrinta: {len(books_to_delete)}")
-                    if skipped: st.error(f"Nepavyko (paskolinta/nerasta): {len(skipped)}")
-                    if books_to_delete: st.rerun()
+                    if candidates:
+                        process_bulk_deletion(candidates)
+                else:
+                    st.warning("Įveskite ID.")
 
         # B. Pagal metus
         with tab_year:
-            year_threshold = st.number_input("Ištrinti iki metų (imtinai):", min_value=-1000, max_value=datetime.now().year + 1, value=1990)
-            candidates = [b for b in library.book_repository.books if b.year <= year_threshold]
+            year_threshold = st.number_input("Ištrinti senesnes nei (metai):", min_value=-1000, max_value=datetime.now().year + 1, value=1990)
+            # Čia svarbu gauti naujausią sąrašą
+            all_books_ref = library.book_repository.get_all()
+            candidates = [b for b in all_books_ref if b.year is not None and b.year < year_threshold]
+            
             if candidates:
-                if st.button(f"Trinti senas knygas ({len(candidates)} rasta)"):
-                    deleted_count = 0
-                    for b in list(candidates): # Kuriame kopiją iteravimui
-                        s, m = library.safe_delete_book(b)
-                        if s: deleted_count += 1
-                    st.session_state.delete_success_msg = f"Sėkmingai ištrinta knygų: {deleted_count}"
-                    st.rerun()
-            else: st.info("Nėra senų knygų.")
+                if st.button(f"Trinti senas knygas ({len(candidates)} rasta)", type="primary"):
+                    process_bulk_deletion(candidates)
+            else: 
+                st.info("Nėra senų knygų.")
 
         # C. Pagal Autorių
         with tab_author:
-            # 1. Gauname visų autorių sąrašą
-            # Pastaba: geriau naudoti get_all(), jei repo tai palaiko, vietoj tiesioginio .books
-            all_books = library.book_repository.get_all() 
-            authors = sorted(list(set(b.author for b in all_books if b.author)))
+            all_books_ref = library.book_repository.get_all()
+            authors = sorted(list(set(b.author for b in all_books_ref if b.author)))
             
             if authors:
                 sel_auth = st.selectbox("Pasirinkite autorių", authors)
+                candidates = [b for b in all_books_ref if b.author == sel_auth]
                 
-                # 2. IŠ ANKSTO susirandame kandidatus trynimui
-                # Taip kodas tampa švaresnis ir nereikia skaičiuoti mygtuko viduje
-                candidates = [b for b in all_books if b.author == sel_auth]
-                candidate_count = len(candidates)
-                
-                # 3. Mygtukas rodo iš anksto suskaičiuotą kiekį
-                if st.button(f"Trinti visas '{sel_auth}' knygas (Rasta: {candidate_count})", type="primary"):
-                    if candidate_count > 0:
-                        # 4. Surenkame ID sąrašą
-                        ids_to_delete = [b.id for b in candidates]
-                        
-                        # 5. Naudojame InventoryService masiniam trynimui 
-                        # (tai geriau nei sukti ciklą UI dalyje)
-                        deleted_real_count = library.inventory_service.batch_delete(ids_to_delete)
-                        
-                        # 6. Įrašome žinutę ir perkrauname
-                        st.session_state.delete_success_msg = f"Sėkmingai ištrinta knygų: {deleted_real_count}"
-                        st.rerun()
-                    else:
-                        st.warning("Nėra ką trinti.")
+                if st.button(f"Trinti visas '{sel_auth}' knygas (Rasta: {len(candidates)})", type="primary"):
+                    if candidates:
+                        process_bulk_deletion(candidates)
+            else:
+                st.info("Nėra autorių.")
 
         # D. Pagal Žanrą
         with tab_genre:
-            # 1. Gauname visus duomenis
-            all_books = library.book_repository.get_all()
-            
-            # 2. Išfiltruojame unikalius žanrus
-            # (b.genre if b.genre - apsauga, kad neįtrauktume tuščių reikšmių)
-            genres = sorted(list(set(b.genre for b in all_books if b.genre)))
+            all_books_ref = library.book_repository.get_all()
+            genres = sorted(list(set(b.genre for b in all_books_ref if b.genre)))
             
             if genres:
                 sel_genre = st.selectbox("Pasirinkite žanrą", genres)
+                candidates = [b for b in all_books_ref if b.genre == sel_genre]
                 
-                # 3. IŠ ANKSTO surandame kandidatus (kad parodytume skaičių mygtuke)
-                candidates = [b for b in all_books if b.genre == sel_genre]
-                candidate_count = len(candidates)
-                
-                # 4. Mygtukas
-                # Svarbu: key="btn_del_genre" padeda Streamlit atskirti šį mygtuką nuo autoriaus mygtuko
-                if st.button(f"Trinti visas '{sel_genre}' knygas (Rasta: {candidate_count})", type="primary", key="btn_del_genre"):
-                    if candidate_count > 0:
-                        ids_to_delete = [b.id for b in candidates]
-                        
-                        # 5. Masinis trynimas per servisą
-                        deleted_real_count = library.inventory_service.batch_delete(ids_to_delete)
-                        
-                        # 6. Žinutė ir perkrovimas
-                        st.session_state.delete_success_msg = f"Sėkmingai ištrinta knygų: {deleted_real_count} (Žanras: {sel_genre})"
-                        st.rerun()
-                    else:
-                        st.warning("Nėra ką trinti.")
+                if st.button(f"Trinti visas '{sel_genre}' knygas (Rasta: {len(candidates)})", type="primary", key="btn_del_genre"):
+                    if candidates:
+                        process_bulk_deletion(candidates)
             else:
-                st.info("Bibliotekoje kol kas nėra knygų su nurodytais žanrais.")
-
-        if 'delete_success_msg' in st.session_state:
-            st.success(st.session_state.delete_success_msg)
-            # Iškart ištriname, kad perkrovus puslapį dar kartą, žinutė nebekabotų
-            del st.session_state.delete_success_msg
+                st.info("Nėra žanrų.")
 
     st.divider()
 
@@ -367,23 +347,28 @@ def _render_books_view(library):
             # 1. TRYNIMAS
             if row['Šalinti']:
                 s, m = library.safe_delete_book(book)
-                if s: changes += 1
-                else: errors.append(m)
+                if s: 
+                    changes += 1
+                else: 
+                    errors.append(f"❌ '{book.title}': {m}")
                 continue
 
             # 2. REDAGAVIMAS
             modified = False
+            # Atnaujiname laukus tik jei jie pasikeitė
             if book.title != row['title']: book.title = row['title']; modified = True
             if book.author != row['author']: book.author = row['author']; modified = True
-            if int(book.year) != int(row['year']): book.year = int(row['year']); modified = True
+            try:
+                if int(book.year) != int(row['year']): book.year = int(row['year']); modified = True
+            except: pass
             if book.genre != row['genre']: book.genre = row['genre']; modified = True
             
-            # Kiekio keitimas
+            # Kiekio keitimas su apsauga
             new_total = int(row['total_copies'])
             if int(book.total_copies) != new_total:
                 diff = new_total - book.total_copies
                 if book.available_copies + diff < 0:
-                    errors.append(f"Knyga '{book.title}': negalima mažinti kiekio (paskolinta).")
+                    errors.append(f"❌ '{book.title}': negalima mažinti kiekio žemiau paskolinto skaičiaus.")
                 else:
                     book.total_copies = new_total
                     book.available_copies += diff
@@ -394,9 +379,12 @@ def _render_books_view(library):
         library.book_repository.save()
         
         if errors:
-            for e in errors: st.error(e)
+            st.error(f"Klaidos ({len(errors)}):")
+            for e in errors: st.write(e)
+            
         if changes > 0:
-            st.success("Duomenys atnaujinti.")
+            st.success(f"Atnaujinta įrašų: {changes}")
+            time.sleep(1.5)
             st.rerun()
 
 def _render_stats_view(library):
@@ -404,41 +392,38 @@ def _render_stats_view(library):
     stats = library.get_advanced_statistics()
     st.subheader("Bendroji Statistika")
     
-    # 1. Duomenų paruošimas diagramai
-    all_books = library.book_repository.books
+    all_books = library.book_repository.get_all()
     total_copies = sum(b.total_copies for b in all_books)
     available_copies = sum(b.available_copies for b in all_books)
     borrowed_copies = total_copies - available_copies
 
-    # Padaliname ekraną: Skaičiai | Diagrama
     col_metrics, col_chart = st.columns([1, 1])
 
     with col_metrics:
         st.write("### Skaičiai")
         st.metric("Viso Knygų (Kopijų)", total_copies)
-        st.metric("Skaitytojų", len([u for u in library.user_repository.users if u.role == 'reader']))
+        # Efektyvesnis būdas suskaičiuoti skaitytojus
+        readers_count = library.user_repository.count_readers() if hasattr(library.user_repository, 'count_readers') else len([u for u in library.user_repository.get_all() if u.role == 'reader'])
+        st.metric("Skaitytojų", readers_count)
         st.metric("Paskolinta šiuo metu", borrowed_copies)
         st.metric("Vėlavimų vidurkis", stats.get('avg_overdue_per_reader', '-'))
 
     with col_chart:
-        # 2. Braižome Pyragą (Donut Chart)
         if total_copies > 0:
             chart_data = pd.DataFrame({
                 "Būsena": ["Laisva", "Paskolinta"],
                 "Kiekis": [available_copies, borrowed_copies]
             })
             
-            # Naudojame Plotly Express
             fig = px.pie(
                 chart_data, 
                 values='Kiekis', 
                 names='Būsena', 
                 title='Fondo užimtumas',
                 color='Būsena',
-                color_discrete_map={'Laisva':'#2ecc71', 'Paskolinta':'#e74c3c'}, # Žalia ir Raudona
-                hole=0.4 # Padaro "spurgą"
+                color_discrete_map={'Laisva':'#2ecc71', 'Paskolinta':'#e74c3c'},
+                hole=0.4
             )
-            # Paslepiame legendą, jei norime švaresnio vaizdo, arba paliekame
             fig.update_layout(showlegend=True)
             st.plotly_chart(fig, width='stretch')
         else:

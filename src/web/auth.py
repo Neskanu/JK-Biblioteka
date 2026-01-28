@@ -2,44 +2,39 @@
 FILE: src/web/auth.py
 PURPOSE: Streamlit vartotojo sąsaja prisijungimui.
 RELATIONSHIPS:
-  - Kviečiama iš app.py.
   - Naudoja src/services/auth_service.py.
 CONTEXT:
-  - Atnaujinta: Atskirti prisijungimo langai Skaitytojui (be slaptažodžio) ir Adminui.
+  - Atnaujinta: Skaitytojai jungiasi su ID, Adminai su Vardu/Slaptažodžiu.
 """
 
 import streamlit as st
 from src.services.auth_service import AuthService
 
 def render_login():
-    """
-    Atvaizduoja prisijungimo formą su dviem pasirinkimais: Skaitytojas arba Bibliotekininkas.
-    """
     st.title("📚 Bibliotekos Sistema")
     
-    # Centruojame
     _, col, _ = st.columns([1, 2, 1])
     
     with col:
         st.subheader("Prisijungimas")
         
-        # Sukuriame skirtukus (Tabs)
         tab_reader, tab_admin = st.tabs(["👤 Skaitytojas", "🛡️ Bibliotekininkas"])
         
-        # --- 1. SKAITYTOJO PRISIJUNGIMAS ---
+        # --- 1. SKAITYTOJAS (Pagal ID) ---
         with tab_reader:
             with st.form("reader_login"):
-                st.write("Įveskite savo vardą (arba ID):")
-                username = st.text_input("Vartotojo vardas")
+                st.info("Įveskite savo Skaitytojo ID (pvz., UUID arba kortelės nr).")
+                # Pakeistas label ir kintamojo pavadinimas
+                reader_id = st.text_input("Skaitytojo ID")
                 submit_reader = st.form_submit_button("Prisijungti", type="primary")
                 
                 if submit_reader:
-                    if username:
-                        _perform_login(username, None) # Slaptažodis nereikalingas
+                    if reader_id:
+                        _perform_reader_login(reader_id.strip())
                     else:
-                        st.warning("Įveskite vardą.")
+                        st.warning("Įveskite ID.")
 
-        # --- 2. BIBLIOTEKININKO PRISIJUNGIMAS ---
+        # --- 2. ADMIN (Pagal Vardą) ---
         with tab_admin:
             with st.form("admin_login"):
                 st.write("Administracinė prieiga:")
@@ -49,32 +44,38 @@ def render_login():
                 
                 if submit_admin:
                     if admin_user and admin_pass:
-                        _perform_login(admin_user, admin_pass)
+                        _perform_admin_login(admin_user.strip(), admin_pass.strip())
                     else:
                         st.warning("Įveskite abu laukus.")
 
-def _perform_login(username, password):
-    """
-    Vidinė funkcija atlikti prisijungimą per servisą.
-    """
-    # Kuriame servisą
-    auth_service = AuthService() # Jis pats susikurs UserRepository viduje
-    
-    # Bandome autentifikuoti
-    user = auth_service.authenticate(username, password)
+def _perform_reader_login(user_id):
+    """Prisijungimas tik su ID."""
+    auth_service = AuthService()
+    user = auth_service.authenticate_reader(user_id)
     
     if user:
-        # Sėkmės atveju
-        st.session_state['user'] = user
-        st.session_state['role'] = user.role
-        
-        st.success(f"Sveiki sugrįžę, {user.username}!")
-        st.rerun()
+        _set_session(user)
     else:
-        st.error("Neteisingi duomenys arba vartotojas nerastas.")
+        st.error(f"Skaitytojas su ID '{user_id}' nerastas.")
+
+def _perform_admin_login(username, password):
+    """Prisijungimas su Vardu ir Slaptažodžiu."""
+    auth_service = AuthService()
+    user = auth_service.authenticate_admin(username, password)
+    
+    if user:
+        _set_session(user)
+    else:
+        st.error("Neteisingas vardas arba slaptažodis.")
+
+def _set_session(user):
+    """Pagalbinė funkcija sesijos nustatymui."""
+    st.session_state['user'] = user
+    st.session_state['role'] = user.role
+    st.success(f"Sveiki, {user.username}!")
+    st.rerun()
 
 def logout():
-    """Atsijungimo funkcija."""
     if 'user' in st.session_state:
         del st.session_state['user']
     if 'role' in st.session_state:

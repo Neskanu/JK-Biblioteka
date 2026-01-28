@@ -14,9 +14,7 @@ from src.models import Book
 
 class BookRepository:
     def __init__(self):
-        # Sesija sukuriama kiekvienai užklausai arba per 'dependency injection'.
-        # Šioje architektūroje, kadangi metodai kviečiami atskirai, 
-        # naudosime SessionLocal() kiekvieno metodo viduje arba kaip property.
+        # Sesija sukuriama kiekvienai užklausai
         pass
 
     @property
@@ -24,9 +22,16 @@ class BookRepository:
         """
         Suderinamumo sluoksnis (Shim).
         Senas kodas tikisi, kad repo.books grąžins sąrašą.
-        PASTABA: Tai nėra efektyvu dideliam kiekiui, bet būtina nekeičiant viso UI.
         """
         return self.get_all()
+
+    def refresh_cache(self):
+        """
+        DEPRECATED (Pasenęs metodas).
+        Paliktas tik dėl suderinamumo su senu UI kodu.
+        SQLAlchemy atveju duomenys visada imami iš DB, todėl cache atnaujinti nereikia.
+        """
+        pass
 
     def get_all(self):
         """Grąžina visas knygas iš DB."""
@@ -86,12 +91,7 @@ class BookRepository:
             session.close()
 
     def update(self, book):
-        """
-        Atnaujina esamą knygą.
-        SQLAlchemy seka objektus, jei jie prijungti prie sesijos.
-        Kadangi 'book' objektas gali būti 'detached' (užius sesijos ribų),
-        naudojame merge.
-        """
+        """Atnaujina esamą knygą."""
         session = SessionLocal()
         try:
             session.merge(book)
@@ -105,16 +105,8 @@ class BookRepository:
     def save(self):
         """
         Suderinamumo metodas.
-        Senas kodas kvietė save() po to, kai pakeisdavo objekto laukus atmintyje.
-        Su SQLAlchemy, jei objektas 'detached', pakeitimai neišsisaugo automatiškai be commit.
-        
-        Geriausia praktika: tiesiogiai kviesti update() servisuose.
-        Tačiau jei senas kodas daro: book.available -= 1; repo.save(),
-        mums reikia įsitikinti, kad tie pakeitimai nueina į DB.
+        SQLAlchemy atveju pakeitimai įrašomi per commit() metodus.
         """
-        # SQLAlchemy atveju, geriau, kad Services sluoksnis valdytų sesiją/commit.
-        # Šis metodas tuščias, nes tikimės, kad update() bus naudojamas tiesiogiai,
-        # ARBA kad objektai bus modifikuojami gyvos sesijos ribose.
         pass
 
     def remove(self, book_id):
