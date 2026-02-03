@@ -87,3 +87,13 @@ class InventoryService:
             imported_count += 1
             
         return imported_count
+    
+    def get_new_arrivals(self, limit=5)
+        """
+        Grąžina vėliausiai į biblioteką įtrauktas knygas.
+        """
+        session = SessionLocal()
+        try:
+            return session.query(Book).order_by(Book.created_at.desc()).limit(limit).all()
+        finally:
+            session.close()

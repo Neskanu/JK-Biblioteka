@@ -27,15 +27,55 @@ def render_dashboard():
     with st.sidebar:
         st.title(f"👋 {user.username}")
         st.info(f"ID: {user.id}")
-        menu = st.radio("Meniu", ["Knygų katalogas", "Mano knygos"])
+        # Pridėta nauja navigacijos parinktis „Naujienos“
+        menu = st.radio("Meniu", ["✨ Naujienos", "🔎 Knygų katalogas", "📚 Mano knygos"])
         st.divider()
         if st.button("Atsijungti", type="primary", width='content'):
             logout()
 
-    if menu == "Knygų katalogas":
+    if menu == "✨ Naujienos":
+        _render_news(library, user)
+    elif menu == "🔎 Knygų katalogas":
         _render_catalog(library, user)
     elif menu == "Mano knygos":
         _render_my_books(library, user)
+
+def _render_news(library, user):
+    """
+    Rodo vėliausiai į biblioteką įtrauktas knygas (naudojant created_at lauką).
+    """
+    st.header("✨ Naujausios knygos bibliotekoje")
+    st.write("Susipažinkite su šviežiausiais papildymais mūsų lentynose!")
+
+    all_books = library.book_repository.get_all()
+    
+    # Rūšiuojame knygas pagal created_at lauką (nuo naujausios)
+    # Jei created_at nėra (seni įrašai), naudojame minimalią datą
+    new_arrivals = sorted(
+        all_books, 
+        key=lambda x: getattr(x, 'created_at', None) or pd.Timestamp.min, 
+        reverse=True
+    )[:5] # Rodome 5 naujausias
+
+    if not new_arrivals:
+        st.info("Naujienų kol kas nėra.")
+        return
+
+    # Atvaizdavimas kortelėmis
+    for book in new_arrivals:
+        with st.container(border=True):
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.subheader(book.title)
+                st.write(f"✍️ **Autorius:** {book.author}")
+                st.caption(f"📂 Žanras: {book.genre} | 📅 Metai: {book.year}")
+            with col2:
+                st.write(f"📦 Likutis: {book.available_copies}/{book.total_copies}")
+                if book.available_copies > 0:
+                    if st.button("Pasiimti", key=f"news_{book.id}"):
+                        _direct_borrow(library, user, book)
+                else:
+                    st.button("Išduota", disabled=True, key=f"news_dis_{book.id}")
 
 def _render_catalog(library, user):
     """

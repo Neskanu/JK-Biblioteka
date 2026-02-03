@@ -10,8 +10,9 @@ CONTEXT:
 """
 
 import uuid
+import datetime
 from typing import List, Optional
-from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy import String, Integer, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database import Base
 
@@ -34,6 +35,9 @@ class Book(Base):
     total_copies: Mapped[int] = mapped_column(Integer, default=1)
     available_copies: Mapped[int] = mapped_column(Integer, default=1)
 
+    # NAUJAS LAUKAS: Automatiškai užpildomas įrašo sukūrimo metu
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
     # Ryšys su Loan (naudojant string "Loan", kad išvengtume ciklinės priklausomybės)
     loans: Mapped[List["Loan"]] = relationship(back_populates="book", cascade="all, delete-orphan")
 
@@ -48,7 +52,8 @@ class Book(Base):
             "year": self.year,
             "genre": self.genre,
             "total_copies": self.total_copies,
-            "available_copies": self.available_copies
+            "available_copies": self.available_copies,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None
         }
 
 class User(Base):
